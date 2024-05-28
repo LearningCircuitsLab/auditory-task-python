@@ -1,6 +1,6 @@
 {
     "middle_port_light_intensity": 100,
-    "side_port_light_intensity": 50,
+    "side_port_light_intensity": 150,
     "trial_types": [
         "left",
         "right"

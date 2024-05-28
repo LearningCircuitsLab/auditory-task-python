@@ -1,18 +1,16 @@
 import _thread
+import json
 import random
 import sys
-import time
 
 import numpy as np
 from village.pybpodapi.protocol import Bpod, StateMachine
 
-# find virtual_mouse.py in the same folder
+# find python files in the same folder
 sys.path.append(".")
-import json
-
 from trial_plotter import TrialPlotter
 from utils import valve_ml_to_s
-from virtual_mouse import SPEED, mouse_movements
+from virtual_mouse import SPEED, VirtualMouse, mouse_movements
 
 # define SPEED if virtual_mouse.py is not imported
 # SPEED = 1
@@ -36,12 +34,13 @@ else:
 plotter = TrialPlotter()
 
 # define the maximum number of trials
-n_trials = 3
+n_trials = 100
 
 bpod = Bpod()
 
 print("Engaging virtual mouse...")
-_thread.start_new_thread(mouse_movements, (bpod,))
+virtual_mouse = VirtualMouse(bpod)
+# _thread.start_new_thread(mouse_movements, (bpod,))
 
 
 for trial in range(n_trials):
@@ -50,6 +49,10 @@ for trial in range(n_trials):
 
     # pick a trial type
     this_trial_type = random.choice(S["trial_types"])
+    # send it to the virtual mouse
+    virtual_mouse.read_trial_type(this_trial_type)
+    # engage the virtual mouse
+    _thread.start_new_thread(virtual_mouse.move_mouse, ())
 
     ## Middle port states
     # Turn on light in the middle port, turn off everything else
@@ -188,12 +191,22 @@ for trial in range(n_trials):
 
     # TODO: update plots here
     # get if the trial was correct or not
-    success_state = bpod.session.current_trial.states_durations['reward_state'][0]
-    if np.any(np.isnan(success_state)):
-        result = 0
-    else:
+
+    # print visited states
+    print("Visited states:")
+    visited_states = [bpod.session.current_trial.sma.state_names[i] for i in bpod.session.current_trial.states]
+    print(visited_states)
+    print("")
+    if "reward_state" in visited_states:
         result = 1
-    plotter.update_plot(result)
+    else:
+        result = 0
+    
+    # update the plot every 5 trials
+    plotter.update_plot(result, 5)
+
+    # This to get timestamps:
+    # success_state = bpod.session.current_trial.states_durations['reward_state'][0]
 
 
 bpod.close()

@@ -26,7 +26,7 @@ for trial in range(n_trials):
             Bpod.Events.Port1In: 'SuccessState',
             # Bpod.Events.Tup: 'MouseTired',
             },
-        output_actions=[(Bpod.OutputChannels.PWM1, 1)]
+        output_actions=[(Bpod.OutputChannels.PWM1, 37)]
     )
 
     sma.add_state(
