@@ -13,7 +13,7 @@ n_trials = 5
 bpod = Bpod()
 
 print("Engaging virtual mouse...")
-# _thread.start_new_thread(simple_mouse_movements, (bpod,))
+_thread.start_new_thread(simple_mouse_movements, (bpod,))
 
 
 for trial in range(n_trials):

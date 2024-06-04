@@ -1,7 +1,7 @@
-import _thread
 import json
 import random
 import sys
+import threading
 
 import numpy as np
 from village.pybpodapi.protocol import Bpod, StateMachine
@@ -20,7 +20,8 @@ with open('cot_task_settings.json') as f:
     S = json.load(f)
 
 timer_for_response = S["timer_for_response"] / SPEED
-valve_opening_time = valve_ml_to_s(S["reward_amount_ml"]) / SPEED
+# valve_opening_time = valve_ml_to_s(S["reward_amount_ml"]) / SPEED
+valve_opening_time = S["punishment_timeout"] / SPEED
 
 # determine if punishment is needed
 if S["punishment"]:
@@ -40,7 +41,7 @@ bpod = Bpod()
 
 print("Engaging virtual mouse...")
 virtual_mouse = VirtualMouse(bpod)
-# _thread.start_new_thread(mouse_movements, (bpod,))
+# _thread.start_new_thread(virtual_mouse.move_mouse, ())
 
 
 for trial in range(n_trials):
@@ -50,9 +51,11 @@ for trial in range(n_trials):
     # pick a trial type
     this_trial_type = random.choice(S["trial_types"])
     # send it to the virtual mouse
-    virtual_mouse.read_trial_type(this_trial_type)
+    # virtual_mouse.read_trial_type(this_trial_type)
     # engage the virtual mouse
-    _thread.start_new_thread(virtual_mouse.move_mouse, ())
+    # my_thread = _thread.start_new_thread(virtual_mouse.move_mouse, ())
+    my_thread = threading.Thread(target=virtual_mouse.move_mouse, args=(this_trial_type,))
+    my_thread.start()
 
     ## Middle port states
     # Turn on light in the middle port, turn off everything else
@@ -182,31 +185,36 @@ for trial in range(n_trials):
     bpod.run_state_machine(sma)
 
 
-    print("Trial {0}, type  {1} info: {2}".format(
-        len(bpod.session.trials),
-        this_trial_type,
-        bpod.session.current_trial),
-        )
-    print("")
+    # print("Trial {0}, type  {1} info: {2}".format(
+    #     len(bpod.session.trials),
+    #     this_trial_type,
+    #     bpod.session.current_trial),
+    #     )
+    # print("")
 
     # TODO: update plots here
     # get if the trial was correct or not
 
     # print visited states
-    print("Visited states:")
+    # print("Visited states:")
     visited_states = [bpod.session.current_trial.sma.state_names[i] for i in bpod.session.current_trial.states]
-    print(visited_states)
-    print("")
+    # print(visited_states)
+    # print("")
     if "reward_state" in visited_states:
         result = 1
+        print("Correct trial\n")
     else:
         result = 0
+        print("Incorrect trial\n")
     
     # update the plot every 5 trials
     plotter.update_plot(result, 5)
 
     # This to get timestamps:
     # success_state = bpod.session.current_trial.states_durations['reward_state'][0]
+
+    # make sure the thread is finished
+    my_thread.join()
 
 
 bpod.close()

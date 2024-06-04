@@ -5,21 +5,21 @@ import time
 import numpy as np
 from village.pybpodapi.protocol import Bpod
 
-SPEED = 50
+SPEED = 5
 
 
 class VirtualMouse():
     def __init__(self, my_bpod):
         self.my_bpod = my_bpod
         # self.bpod = Bpod()
-        self.trial_limit = 200
+        self.trial_limit = 500
         self.trial_number_counter = 0
         self.performance = .5
         self.learning_rate = .005
     
     def portX_in(self, port_number):
-        # somehow it has to poke out first for this to work
-        self.my_bpod.manual_override(Bpod.ChannelTypes.INPUT, 'Port', channel_number=port_number, value=0)
+        # somehow it has to poke out first for this to work in my laptop only
+        # self.my_bpod.manual_override(Bpod.ChannelTypes.INPUT, 'Port', channel_number=port_number, value=0)
         self.my_bpod.manual_override(Bpod.ChannelTypes.INPUT, 'Port', channel_number=port_number, value=1)
 
     def portX_out(self, port_number):
@@ -27,6 +27,7 @@ class VirtualMouse():
     
     def read_trial_type(self, trial_type):
         self.trial_type = trial_type
+        print(f"Mouse is reading trial type: {self.trial_type}")
 
     def port_picker(self, trial_type, mouse_performance):
         probability_distribution = [mouse_performance, 1 - mouse_performance]
@@ -39,12 +40,14 @@ class VirtualMouse():
         self.performance += self.learning_rate
         if self.performance > 1:
             self.performance = 1
+        print(f"Mouse performance: {self.performance}")
 
-    def move_mouse(self):
-        self.movements_for_trial(self.my_bpod, self.trial_type)
-    
-    def movements_for_trial(self, bpod, trial_type):
+    def move_mouse(self, trial_type):
         print("Mouse is starting a new trial!")
+        self.read_trial_type(trial_type)
+        self.movements_for_trial(self.trial_type)
+    
+    def movements_for_trial(self, trial_type):
         self.trial_number_counter += 1
         # wait a bit for the bpod to load the state matrix
         time.sleep(.05)
@@ -54,12 +57,13 @@ class VirtualMouse():
         self.portX_out(2)
         # choose a random port to poke
         port_to_poke = self.port_picker(trial_type, self.performance)
+        print(f"Mouse poked in {port_to_poke}")
         self.portX_in(port_to_poke)
         time.sleep(.5 / SPEED)
         self.portX_out(port_to_poke)
         # learn
-        if self.performance < 1:
-            self.learn()
+        self.learn()
+        print(f"Done trial number: {self.trial_number_counter}")
 
 def mouse_movements(bpod):
     my_mouse = VirtualMouse(bpod)
@@ -72,13 +76,16 @@ def mouse_movements(bpod):
     idle_time_limit = 7
     current_time = time.time()
     while time.time() - current_time < idle_time_limit:
-        current_trial_number = len(bpod.session.trials)
+        try:
+            current_trial_number = len(bpod.session.trials)
+        except AttributeError:
+            print("Bpod session not found, task probabrly finished.")
+            break
         if current_trial_number > my_mouse.trial_limit:
             # if the current trial number is greater than the limit, mouse does nothing
             pass
         elif len(bpod.session.trials) > previous_trial_number:
             previous_trial_number = len(bpod.session.trials)
-            print("New trial detected!")
             # poke in center port
             my_mouse.portX_in(2)
             time.sleep(.5 / SPEED)
