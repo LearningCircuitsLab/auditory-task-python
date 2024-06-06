@@ -4,8 +4,6 @@ import time
 import numpy as np
 from village.pybpodapi.protocol import Bpod
 
-SPEED = 50
-
 
 class VirtualMouse():
     def __init__(self, my_bpod):
@@ -15,6 +13,7 @@ class VirtualMouse():
         self.trial_number_counter = 0
         self.performance = .5
         self.learning_rate = .005
+        self.speed = 50
     
     def portX_in(self, port_number):
         # somehow it has to poke out first for this to work
@@ -43,24 +42,24 @@ class VirtualMouse():
         self.movements_for_trial(self.trial_type)
     
     def movements_for_trial(self, trial_type):
-        print("Mouse is starting a new trial!")
+        print("Virtual Mouse is starting a new trial!")
         self.trial_number_counter += 1
         # wait a bit for the bpod to load the state matrix
         time.sleep(.05)
         # poke in center port
         self.portX_in(2)
-        time.sleep(.5 / SPEED)
+        time.sleep(.5 / self.speed)
         self.portX_out(2)
         # choose a random port to poke
         port_to_poke = self.port_picker(trial_type, self.performance)
         self.portX_in(port_to_poke)
-        time.sleep(.5 / SPEED)
+        time.sleep(.5 / self.speed)
         self.portX_out(port_to_poke)
         # learn
         if self.performance < 1:
             self.learn()
 
-def mouse_movements(bpod):
+def mouse_movements(bpod, speed=1):
     my_mouse = VirtualMouse(bpod)
     # wait a second for the bpod to start running
     time.sleep(2)
@@ -80,18 +79,18 @@ def mouse_movements(bpod):
             print("New trial detected!")
             # poke in center port
             my_mouse.portX_in(2)
-            time.sleep(.5 / SPEED)
+            time.sleep(.5 / speed)
             my_mouse.portX_out(2)
             # choose a random port to poke
             port_to_poke = random.choice([1, 3])
             my_mouse.portX_in(port_to_poke)
-            time.sleep(.5 / SPEED)
+            time.sleep(.5 / speed)
             my_mouse.portX_out(port_to_poke)
-        time.sleep(1 / SPEED)
+        time.sleep(1 / speed)
         current_time = time.time()
     print("Mouse is tired...")
 
-def simple_mouse_movements(bpod):
+def simple_mouse_movements(bpod, speed):
     my_mouse = VirtualMouse(bpod)
     # wait a second for the bpod to start running
     time.sleep(1)
@@ -111,9 +110,9 @@ def simple_mouse_movements(bpod):
             print("New trial detected!")
             # poke in center port
             my_mouse.portX_in(2)
-            time.sleep(.5 / SPEED)
+            time.sleep(.5 / speed)
             my_mouse.portX_out(2)
-        time.sleep(1 / SPEED)
+        time.sleep(1 / speed)
         current_time = time.time()
     print("Mouse is tired...")  
 

@@ -13,7 +13,7 @@ from village.pybpodapi.protocol import Bpod, StateMachine
 sys.path.append(".")
 from trial_plotter import TrialPlotter
 from utils import valve_ml_to_s
-from virtual_mouse import SPEED, VirtualMouse
+from virtual_mouse import VirtualMouse
 
 # define SPEED if virtual_mouse.py is not imported
 # SPEED = 1
@@ -22,13 +22,13 @@ from virtual_mouse import SPEED, VirtualMouse
 with open('cot_task_settings.json') as f:
     S = json.load(f)
 
-timer_for_response = S["timer_for_response"] / SPEED
-valve_opening_time = valve_ml_to_s(S["reward_amount_ml"]) / SPEED
+timer_for_response = S["timer_for_response"] / self.speed
+valve_opening_time = valve_ml_to_s(S["reward_amount_ml"]) / self.speed
 
 # determine if punishment is needed
 if S["punishment"]:
     punish_condition = 'punish_state'
-    punishment_timeout = S["punishment_timeout"] / SPEED
+    punishment_timeout = S["punishment_timeout"] / self.speed
 else:
     punish_condition = 'ready_for_response'
     punishment_timeout = 0
@@ -67,12 +67,12 @@ for trial in range(n_trials):
         ]
 
     state_to_go_after_middle_poke = 'stimulus_state'
-    opto_on_initiation_port_time = 0 / SPEED
+    opto_on_initiation_port_time = 0 / self.speed
     opto_on_initiation_port_actions = []
 
     early_withdrawal_state = 'ready_to_initiate'
 
-    middle_port_hold_timer = .3 / SPEED
+    middle_port_hold_timer = .3 / self.speed
     # TODO: play sound here
     # TODO: remove the light from the middle port here?
     middle_port_output = [(Bpod.OutputChannels.PWM2, 20)]
@@ -90,14 +90,14 @@ for trial in range(n_trials):
     
 
     # can do opto here for instance
-    ready_for_response_output = []        
+    ready_for_response_output = []
 
     # Define the state machine
     sma = StateMachine(bpod)
     # 'start_of_trial' state that sends a TTL pulse to the BNC channel 2
     sma.add_state(
         state_name='start_of_trial',
-        state_timer=0.01 / SPEED,
+        state_timer=0.01 / self.speed,
         state_change_conditions={Bpod.Events.Tup: 'ready_to_initiate'},
         output_actions=[(Bpod.OutputChannels.BNC2, 3)]
     )

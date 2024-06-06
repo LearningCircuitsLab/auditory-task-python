@@ -1,3 +1,4 @@
+import _thread
 import json
 import random
 import sys
@@ -9,7 +10,7 @@ from village.pybpodapi.protocol import Bpod
 sys.path.append(".")
 from trial_plotter import TrialPlotter
 from utils import valve_ml_to_s
-from virtual_mouse import SPEED, VirtualMouse
+from virtual_mouse import VirtualMouse
 
 
 class FollowTheLight(Task):
@@ -27,8 +28,17 @@ class FollowTheLight(Task):
         If the mouse licks the wrong side port, it receives a punishment.
         """
 
-        # override number of trials
+        # define total number of trials
         self.number_of_trials = 10
+
+        # initiate the variable for the virtual mouse
+        self.virtual_mouse = None
+        # initialise the speed of the task (used normally for the virtual mouse)
+        # 1 is the normal speed
+        self.speed = 1
+
+        # initiate the plotter
+        self.plotter = None
 
     def start(self):
 
@@ -36,14 +46,9 @@ class FollowTheLight(Task):
         with open('follow_the_light_settings.json') as f:
             self.task_settings = json.load(f)
 
-        # the speed is defined in the virtual_mouse.py file
-        # set it as one if virtual_mouse.py is not imported
-        # TODO: use virtual_mouse as an option to run the task
-        self.speed = 10
-
         ## Initiate variables that will be used in the task and won't change
         # Middle port states
-        # Turn on light in the middle port, turn off everything else
+        # Turn on light in the middle port, turn off everything else (it should be off already anyway)
         self.ready_to_initiate_output = [
             (Bpod.OutputChannels.PWM2, self.task_settings["middle_port_light_intensity"]),
             (Bpod.OutputChannels.PWM1, 0),
@@ -75,6 +80,14 @@ class FollowTheLight(Task):
         ## initiate other variables that will be updated every trial
         self.start_of_trial_transition = None
 
+        # start the virtual mouse if it is a class VirtualMouse
+        if type(self.virtual_mouse) == VirtualMouse:
+            print("Engaging virtual mouse...")
+        
+        # initiate the plotter if it is a class TrialPlotter
+        if type(self.plotter) == TrialPlotter:
+            print("Engaging plotter...")
+
     def configure_gui(self):
         pass
 
@@ -97,6 +110,12 @@ class FollowTheLight(Task):
         ## Define the conditions for the trial
         # pick a trial type. In this case it is a random choice between "left" and "right"
         self.this_trial_type = random.choice(self.task_settings["trial_types"])
+
+        # send it to the virtual mouse
+        if self.virtual_mouse:
+            self.virtual_mouse.read_trial_type(self.this_trial_type)
+            # engage the virtual mouse
+            _thread.start_new_thread(self.virtual_mouse.move_mouse, ())
 
         ## Middle port states      
         # Adjust as you want the timer that the mouse has to hold the head in the middle port
@@ -142,11 +161,10 @@ class FollowTheLight(Task):
         )
 
         # 'ready_to_initiate' state that waits for the poke in the middle port
-        # TODO: change this after testing!
         self.sma.add_state(
             state_name='ready_to_initiate',
-            state_timer=0.5,
-            state_change_conditions={Bpod.Events.Port2In: 'holding_state', Bpod.Events.Tup: 'holding_state'},
+            state_timer=0,
+            state_change_conditions={Bpod.Events.Port2In: 'holding_state'},
             output_actions=self.ready_to_initiate_output
         )
 
@@ -200,7 +218,20 @@ class FollowTheLight(Task):
         )
 
     def after_trial(self):
-        pass
+        visited_states = [self.bpod.session.current_trial.sma.state_names[i] for i in self.bpod.session.current_trial.states]
+        if "reward_state" in visited_states:
+            result = 1
+        else:
+            result = 0
+    
+        # update the plotter
+        if type(self.plotter) == TrialPlotter:
+            refresh_rate = 5 # every how many trials you want to update the plot
+            self.plotter.update_plot(result, refresh_rate)
 
     def close(self):
+        # Keep the plot open
+        if type(self.plotter) == TrialPlotter:
+            self.plotter.keep_plotting()
+            print("Close the plot window to finish the task") 
         print("Closing the task")
