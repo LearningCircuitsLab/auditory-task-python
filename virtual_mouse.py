@@ -1,4 +1,3 @@
-import _thread
 import random
 import time
 
@@ -41,9 +40,9 @@ class VirtualMouse():
             self.performance = 1
 
     def move_mouse(self):
-        self.movements_for_trial(self.my_bpod, self.trial_type)
+        self.movements_for_trial(self.trial_type)
     
-    def movements_for_trial(self, bpod, trial_type):
+    def movements_for_trial(self, trial_type):
         print("Mouse is starting a new trial!")
         self.trial_number_counter += 1
         # wait a bit for the bpod to load the state matrix

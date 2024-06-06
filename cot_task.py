@@ -1,3 +1,6 @@
+# independent of the Task Class of village
+
+
 import _thread
 import json
 import random
@@ -10,7 +13,7 @@ from village.pybpodapi.protocol import Bpod, StateMachine
 sys.path.append(".")
 from trial_plotter import TrialPlotter
 from utils import valve_ml_to_s
-from virtual_mouse import SPEED, VirtualMouse, mouse_movements
+from virtual_mouse import SPEED, VirtualMouse
 
 # define SPEED if virtual_mouse.py is not imported
 # SPEED = 1
@@ -40,7 +43,6 @@ bpod = Bpod()
 
 print("Engaging virtual mouse...")
 virtual_mouse = VirtualMouse(bpod)
-# _thread.start_new_thread(mouse_movements, (bpod,))
 
 
 for trial in range(n_trials):
