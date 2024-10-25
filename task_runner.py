@@ -6,12 +6,13 @@ sys.path.append(".")
 from follow_the_light import FollowTheLight
 from trial_plotter import TrialPlotter
 from virtual_mouse import VirtualMouse
+from training_settings import TrainingSettings
 
-# Create an instance of the task
+# Create an instance of the task and get the default training settings
 ftl_task = FollowTheLight()
-
-# Set the number of trials
-ftl_task.number_of_trials = 100
+training = TrainingSettings()
+training.default_training_settings()
+ftl_task.settings = training.settings
 
 # Activate a virtual mouse and let it know about the bpod
 ftl_task.virtual_mouse = VirtualMouse(ftl_task.bpod)
@@ -30,4 +31,17 @@ ftl_task.plotter = TrialPlotter()
 subject = Subject("test_subject")
 
 # Run the task
-ftl_task.test_run(subject)
+ftl_task.run_one_trial_in_thread()
+#     time.sleep(.5)
+#     # poke in the middle port
+#     task.bpod.manual_override_input("Port2In")
+#     task.bpod.manual_override_input("Port2Out")
+#     # poke in the left port
+#     task.bpod.manual_override_input("Port1In")
+#     task.bpod.manual_override_input("Port1Out")
+#     time.sleep(0.1)
+#     # poke in the right port
+#     task.bpod.manual_override_input("Port3In")
+#     task.bpod.manual_override_input("Port3Out")
+#     # leave enough time for the bpod to finish
+#     time.sleep(2)
