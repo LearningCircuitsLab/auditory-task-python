@@ -1,3 +1,5 @@
+import ast
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -6,7 +8,7 @@ class TrialPlotter:
     def __init__(self):
         # Initialize the plot
         self.fig, self.ax = plt.subplots()
-        self.trial_results = []
+        self.results: pd.DataFrame = pd.DataFrame()
         self.beautify_plot()
     
     def beautify_plot(self):
@@ -19,20 +21,26 @@ class TrialPlotter:
         # add another y axis to the right
         self.ax2 = self.ax.twinx()
 
-    def update_plot(self, result, update_interval=5):
-        # Append the result to trial_results
-        self.trial_results.append(result)
+    # def update_plot(self, result, update_interval=5):
+    #     # Append the result to trial_results
+    #     self.trial_results.append(result)
         
+    #     # Update the plot
+    #     if len(self.trial_results) % update_interval == 0:
+    #         self.paint_plot()
+
+    def update_plot(self, data):
+        # Update data
+        self.results = [ast.literal_eval(x) for x in data.correct.values]
         # Update the plot
-        if len(self.trial_results) % update_interval == 0:
-            self.paint_plot()
+        self.paint_plot()
     
     def paint_plot(self):
         self.ax.clear()
-        self.ax.plot(self.trial_results, '.')
-        # plot the mean of the last 10 trials
-        self.ax.plot(pd.Series(self.trial_results).rolling(10).mean(), 'r')
-        self.beautify_plot()
+        self.ax.plot(self.results, '.')
+        # plot the mean of the last 5 trials
+        self.ax.plot(pd.Series([int(x) for x in self.results]).rolling(5).mean(), 'r')
+        # self.beautify_plot()
         plt.pause(0.01)  # Pause for a short period to allow the plot to update
     
     def keep_plotting(self):
