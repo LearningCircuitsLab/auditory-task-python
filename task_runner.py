@@ -4,7 +4,7 @@ import time
 import pandas as pd
 
 sys.path.append(".")
-from follow_the_light import FollowTheLight
+from follow_the_light import TwoAFC
 from training_settings import TrainingSettings
 from trial_plotter import TrialPlotter
 from virtual_mouse import VirtualMouse
@@ -17,7 +17,7 @@ time_plot_update = []
 t_start = time.time()
 
 # Create an instance of the task and get the default training settings
-ftl_task = FollowTheLight()
+ftl_task = TwoAFC()
 training = TrainingSettings()
 training.default_training_settings()
 ftl_task.settings = training.settings
@@ -32,7 +32,7 @@ virtual_mouse = VirtualMouse(ftl_task.bpod)
 # Change how fast the mouse learns
 virtual_mouse.learning_rate = .005
 # Set the maximum number of trials
-virtual_mouse.trial_limit = 5
+virtual_mouse.trial_limit = 25
 
 # Increase the speed of the task and virtual mouse
 SPEED = 100

@@ -1,11 +1,12 @@
 import pprint
 import random
 
+import numpy as np
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
 
-class FollowTheLight(Task):
+class TwoAFC(Task):
     def __init__(self):
         super().__init__()
 
@@ -18,8 +19,9 @@ class FollowTheLight(Task):
         to poke the center port to start a trial.
         After the center port is poked,
         one of the two side ports will be illuminated.
-        If the mouse licks the correct side port, it receives a reward.
-        If the mouse licks the wrong side port, it receives a punishment.
+        The mouse has to hold the center port a certain amount of time.
+        If the mouse pokes the correct side port, it receives a reward.
+        If the mouse pokes the wrong side port, it receives a punishment.
 
         It contains 2 training stages:
         - Training stage 1: Only one side port is illuminated and gives reward.
@@ -34,9 +36,9 @@ class FollowTheLight(Task):
 
     def start(self):
 
-        print("FollowTheLight starts")
+        print("TwoAFC starts")
 
-        ## Initiate states that won't change during training
+        ## Initiate conditions that won't change during training
         # Trial start state:
         # Turn on light in the middle port
         self.ready_to_initiate_output = [
@@ -62,6 +64,9 @@ class FollowTheLight(Task):
         else:
             # if no punishment is used, let the mouse choose again
             self.punish_condition = "stimulus_state"
+
+        # determine the initial holding time for the center port
+        self.time_to_hold_response = self.settings.holding_response_time
 
     def configure_gui(self):
         # TODO: implement this method
@@ -140,8 +145,19 @@ class FollowTheLight(Task):
         self.bpod.add_state(
             state_name="ready_to_initiate",
             state_timer=0,
-            state_change_conditions={Event.Port2In: "stimulus_state"},
+            state_change_conditions={Event.Port2In: "hold_center_port"},
             output_actions=self.ready_to_initiate_output,
+        )
+
+        # 'hold_center_port' state that waits for the mouse to hold the center port
+        self.bpod.add_state(
+            state_name="hold_center_port",
+            state_timer=self.time_to_hold_response,
+            state_change_conditions={
+                Event.Port2Out: "ready_to_initiate",
+                Event.Tup: "stimulus_state"
+                },
+            output_actions=[],
         )
 
         self.bpod.add_state(
@@ -188,7 +204,15 @@ class FollowTheLight(Task):
         self.bpod.register_value("trial_type", self.this_trial_type)
 
         # we will also record if the trial was correct or not
-        self.bpod.register_value("correct", self.get_performance_of_trial())
+        was_trial_correct = self.get_performance_of_trial()
+        self.bpod.register_value("correct", was_trial_correct)
+
+        # store the holding time
+        self.bpod.register_value("holding_time", self.time_to_hold_response)
+        # if trial was correct, increase the holding time with a limit
+        if was_trial_correct:
+            new_holding_time = self.time_to_hold_response + self.settings.holding_response_time_step
+            self.time_to_hold_response = np.min(new_holding_time, self.settings.holding_response_time_max)
 
     def close(self):
         print("Closing the task")
@@ -228,7 +252,7 @@ class FollowTheLight(Task):
 
 #     from training_settings import TrainingSettings
 
-#     task = FollowTheLight()
+#     task = TwoAFC()
 #     training = TrainingSettings()
 #     training.default_training_settings()
 #     task.settings = training.settings

@@ -1,4 +1,30 @@
+import numpy as np
 from village.classes.training import Training
+
+"""
+Two Alternative Force Choice Task for the Training Village.
+
+First stage of training is Habituation Task. Here, center port lights up
+and after poking both sides light up. Mouse receives reward for poking
+in any port. This stage is used to habituate the mouse to the task.
+
+Second stage is TwoAFC Task using visual stimuli.
+Here, center port lights up and after poking only one of the side ports lights up.
+Mouse receives reward for poking in the correct port.
+
+Third stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking
+a cloud of tones is played. Mouse receives reward for poking in the correct port.TODO
+
+
+Progression rules:
+- Reward keeps decreasing after each session that has more than 50 trials.
+- Animals move to TwoAFC (visual, easy) after 300 trials in Habituation.
+- Waiting time in the center port keeps increasing to a limit during TwoAFC.
+  This is implemented in the task, but parameters for how to do this are here.
+- Animals move to the hard version of TwoAFC visual after XXX. TODO
+- Animals move to auditory version after 3 consecutive sessions on TwoAFC visual hard
+  with over 350 trials and with over 90% performance.TODO
+"""
 
 
 class TrainingSettings(Training):
@@ -27,7 +53,8 @@ class TrainingSettings(Training):
 
     When a task is run the values of the variables are read from the json file.
     When the task ends, the values of the variables are updated in the json file,
-    following the logic in the update method"""
+    following the logic in the update method.
+    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -39,35 +66,42 @@ class TrainingSettings(Training):
         """
         # Settings in this block are mandatory for everything
         # that runs on Traning Village
-        # TODO: explain them
         self.settings.next_task = "Habituation"
         self.settings.refractary_period = 14400
         self.settings.minimum_duration = 600
         self.settings.maximum_duration = 3600
-        self.settings.maximum_number_of_trials = 1000
+        self.settings.maximum_number_of_trials = 10000
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
+
+        # strenght of the light in the middle port
         self.settings.middle_port_light_intensity = 50
+        # time the mouse needs to wait in the center port
+        self.settings.holding_response_time_min = .03
+        self.settings.holding_response_time_max = .5
+        self.settings.holding_response_time_step = .001
+        self.settings.holding_response_time = self.settings.holding_response_time_min
+        # time the mouse has to respond
         self.settings.timer_for_response = 5
+        # inter trial interval
         self.settings.iti = 1
+        # reward amount in ml to start with
         self.settings.reward_amount_ml = 5
+        # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
         self.settings.punishment_time = 1
-        self.settings.trial_types = ["left_easy", "right_easy"]
+        # stimulus modality
+        self.settings.stimulus_modality = "visual"
+        # trial types
+        self.settings.trial_types = []
+        # parameters associated with trial types
         self.settings.side_port_light_intensities = [100, 200]
 
     def update_training_settings(self) -> None:
         """
         This method is called every time a session finishes.
         It is used to make the animal progress in the training protocol.
-
-        For this example, we want the animal to go from Habituation to FollowTheLight
-        after 2 sessions, as long as it completed overall more than 100 trials.
-        We also want to decrease the reward amount during the first sessions.
-        We promote the animals to the second training stage in FollowTheLight
-        when they do two consecutive sessions with over 85% performance.
-        Note that in this case, they never go back to the easier task.
         """
         ## You have access to the following variables:
         # self.subject contains the name of the mouse
@@ -77,13 +111,9 @@ class TrainingSettings(Training):
         # get some information
         total_trials = self.df.shape[0]
         total_sessions = len(self.df.session.unique())
-
-        # define when to change tasks
-        if self.settings.next_task == "Habituation" and total_trials > 100 and total_sessions >= 2:
-            self.settings.next_task = "FollowTheLight"
         
-        # decrease the reward amount at the beginning of training
-        match total_sessions:
+        # decrease the reward amount for each session with more than 50 trials
+        match np.sum(self.df.session.value_counts() > 50):
             case 0:
                 self.settings.reward_amount_ml = 5
             case 1:
@@ -96,6 +126,16 @@ class TrainingSettings(Training):
                 self.settings.reward_amount_ml = 2.5
             case _:
                 self.settings.reward_amount_ml = 2
+        
+        # progress to TwoAFC after 300 trials in Habituation
+        if self.settings.next_task == "Habituation" and total_trials > 300:
+            self.settings.next_task = "TwoAFC"
+            self.settings.stimulus_modality = "visual"
+            self.settings.trial_types = ["left_easy", "right_easy"]
+        
+        # update the waiting time in the center port during TwoAFC
+        if self.settings.next_task == "TwoAFC":
+            self.settings.holding_response_time = self.df.iloc[-1]["holding_time"]
 
         # logic to promote the animal to the second training stage:
         is_animal_in_hardest_stage = any(item in self.df.trial_type.unique() for item in ["left_hard", "right_hard"])
