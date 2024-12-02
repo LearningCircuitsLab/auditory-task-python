@@ -19,14 +19,19 @@ class VirtualMouse:
 
     def portX_out(self, port_number):
         self.my_bpod.manual_override_input("Port" + str(port_number) + "Out")
-    
+
     def listen_for_trial_start(self):
         while True:
             # print("Virtual Mouse is reading the current state...")
             # get the current state name
             try:
-                current_state = self.my_bpod.sma.state_names[self.my_bpod.sma.current_state]
-            except (TypeError, IndexError): # sometimes sma.current_state returns float if it is changing trial
+                current_state = self.my_bpod.sma.state_names[
+                    self.my_bpod.sma.current_state
+                ]
+            except (
+                TypeError,
+                IndexError,
+            ):  # sometimes sma.current_state returns float if it is changing trial
                 continue
             if current_state == "ready_to_initiate":
                 print("Virtual Mouse is starting a new trial!")

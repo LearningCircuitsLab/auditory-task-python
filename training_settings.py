@@ -1,29 +1,40 @@
 import numpy as np
 from village.classes.training import Training
+from village.log import log
+
+from utils import get_session_number_of_trials, get_session_performance
 
 """
 Two Alternative Force Choice Task for the Training Village.
 
-First stage of training is Habituation Task. Here, center port lights up
+*First stage of training is Habituation Task. Here, center port lights up
 and after poking both sides light up. Mouse receives reward for poking
 in any port. This stage is used to habituate the mouse to the task.
 
-Second stage is TwoAFC Task using visual stimuli.
+*Second stage is TwoAFC Task using visual stimuli.
 Here, center port lights up and after poking only one of the side ports lights up.
 Mouse receives reward for poking in the correct port.
 
-Third stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking
+*Third stage is TwoAFC using visual stimuli with increased difficulty.
+Both ports light up, but one of them is brighter. Mouse receives reward for poking.
+
+*Fourth stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking
 a cloud of tones is played. Mouse receives reward for poking in the correct port.TODO
 
+*Fifth stage is TwoAFC using auditory stimuli with increased difficulty. TODO
+
+*Sixth stage interleaves visual and auditory stimuli in easy mode. TODO
+
+*Seventh stage interleaves visual and auditory stimuli in hard mode. TODO
 
 Progression rules:
 - Reward keeps decreasing after each session that has more than 50 trials.
 - Animals move to TwoAFC (visual, easy) after 300 trials in Habituation.
 - Waiting time in the center port keeps increasing to a limit during TwoAFC.
   This is implemented in the task, but parameters for how to do this are here.
-- Animals move to the hard version of TwoAFC visual after XXX. TODO
-- Animals move to auditory version after 3 consecutive sessions on TwoAFC visual hard
-  with over 350 trials and with over 90% performance.TODO
+- Animals move to the hard version of TwoAFC visual after after 3 consecutive 
+  sessions with over 350 trials and with over 90% performance.
+- Animals move to auditory version .TODO
 """
 
 
@@ -41,7 +52,7 @@ class TrainingSettings(Training):
     must be defined.
     When a new subject is created, a new row is added to the data/subjects.csv file,
     with these variables and its values.
-    
+
     The following variables are needed:
     - self.next_task
     - self.refractary_period
@@ -67,6 +78,8 @@ class TrainingSettings(Training):
         # Settings in this block are mandatory for everything
         # that runs on Traning Village
         self.settings.next_task = "Habituation"
+        self.settings.current_training_stage = "Habituation"
+        # TODO: in the GUI, fix the values that stages can take
         self.settings.refractary_period = 14400
         self.settings.minimum_duration = 600
         self.settings.maximum_duration = 3600
@@ -75,28 +88,28 @@ class TrainingSettings(Training):
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
 
-        # strenght of the light in the middle port
-        self.settings.middle_port_light_intensity = 50
-        # time the mouse needs to wait in the center port
-        self.settings.holding_response_time_min = .03
-        self.settings.holding_response_time_max = .5
-        self.settings.holding_response_time_step = .001
+        # strenght of the light in the middle port (0-1)
+        self.settings.middle_port_light_intensity = .2
+        # time the mouse needs to wait in the center port (in seconds)
+        self.settings.holding_response_time_min = 0.03
+        self.settings.holding_response_time_max = 0.5
+        self.settings.holding_response_time_step = 0.001
         self.settings.holding_response_time = self.settings.holding_response_time_min
-        # time the mouse has to respond
+        # time the mouse has to respond (in seconds)
         self.settings.timer_for_response = 5
-        # inter trial interval
+        # inter trial interval (in seconds)
         self.settings.iti = 1
-        # reward amount in ml to start with
+        # reward amount in ml to start with (in ml)
         self.settings.reward_amount_ml = 5
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
-        self.settings.punishment_time = 1
+        self.settings.punishment_time = 1 # in seconds
         # stimulus modality
         self.settings.stimulus_modality = "visual"
         # trial types
         self.settings.trial_types = []
         # parameters associated with trial types
-        self.settings.side_port_light_intensities = [100, 200]
+        self.settings.side_port_light_intensities = [0, .1, .2, .3]
 
     def update_training_settings(self) -> None:
         """
@@ -108,10 +121,8 @@ class TrainingSettings(Training):
         # self.df object contains all data from training for a particular subject
         # self.settings contains the settings from the last session
 
-        # get some information
-        total_trials = self.df.shape[0]
-        total_sessions = len(self.df.session.unique())
-        
+        # General progressions and adjustments of parameters
+
         # decrease the reward amount for each session with more than 50 trials
         match np.sum(self.df.session.value_counts() > 50):
             case 0:
@@ -126,42 +137,97 @@ class TrainingSettings(Training):
                 self.settings.reward_amount_ml = 2.5
             case _:
                 self.settings.reward_amount_ml = 2
-        
-        # progress to TwoAFC after 300 trials in Habituation
-        if self.settings.next_task == "Habituation" and total_trials > 300:
-            self.settings.next_task = "TwoAFC"
-            self.settings.stimulus_modality = "visual"
-            self.settings.trial_types = ["left_easy", "right_easy"]
-        
+
         # update the waiting time in the center port during TwoAFC
         if self.settings.next_task == "TwoAFC":
-            self.settings.holding_response_time = self.df.iloc[-1]["holding_time"]
+            if "holding_time" in self.df.columns:
+                self.settings.holding_response_time = self.df.iloc[-1]["holding_time"]
 
-        # logic to promote the animal to the second training stage:
-        is_animal_in_hardest_stage = any(item in self.df.trial_type.unique() for item in ["left_hard", "right_hard"])
-        if total_sessions >= 2 and not is_animal_in_hardest_stage:
-            last_session_performance = self.get_session_performance(total_sessions)
-            previous_session_performance = self.get_session_performance(total_sessions - 1)
-            if last_session_performance >= 0.85 and previous_session_performance >= 0.85:
-                # introduce punishment
-                self.settings.punishment = True
-                # change the trial types
-                self.settings.trial_types = ["left_easy", "right_easy", "left_hard", "right_hard"]
+        # implement checks depending on the training stage
+        match self.settings.current_training_stage:
+            case "Habituation":
+                self.check_progression_from_habituation()
+            case "TwoAFC_visual_easy":
+                self.check_progression_from_tafc_visual_easy()
+            case "TwoAFC_visual_hard":
+                self.check_progression_from_tafc_visual_hard()
+            case _:
+                # raise an error
+                log.error(
+                    f"Training stage {self.settings.current_training_stage} not recognized."
+                )
 
         return None
-    
-    def get_session_performance(self, session: int) -> float:
-        """
-        This method calculates the performance of a session.
-        """
 
-        return self.df[self.df.session == session].correct.mean()
+    def check_progression_from_habituation(self) -> None:
+        """
+        This method checks if the animal is ready to get promoted from habituation
+        to the TwoAFC visual easy training stage.
+        """
+        # has the animal completed 300 trials?
+        total_trials = self.df.shape[0]
+        if total_trials >= 300:
+            self.settings.next_task = "TwoAFC"
+            self.settings.current_training_stage = "TwoAFC_visual_easy"
+            self.settings.stimulus_modality = "visual"
+            self.settings.trial_types = ["left_easy", "right_easy"]
+
+        return None
+
+    def check_progression_from_tafc_visual_easy(self) -> None:
+        """
+        This method checks if the animal is ready to get promoted from
+        TwoAFC visual easy to TwoAFC visual hard.
+        """
+        # logic to promote the animal to the hard visual training stage:
+        # after 3 consecutive sessions with over 350 trials and over 90% performance
+        total_sessions = self.df.session.nunique()
+        n_sessions = 3
+        performance_threshold = 0.9
+        if total_sessions >= n_sessions:
+            previous_performances = [
+                get_session_performance(self.df, session)
+                for session in self.df.session.unique()[-n_sessions:]
+            ]
+            previous_n_trials = [
+                get_session_number_of_trials(self.df, session)
+                for session in self.df.session.unique()[-n_sessions:]
+            ]
+            if all(
+                [
+                    performance > performance_threshold
+                    for performance in previous_performances
+                ]
+            ) and all([n_trials > 350 for n_trials in previous_n_trials]):
+                # change the trial types
+                self.settings.trial_types = [
+                    "left_easy",
+                    "right_easy",
+                    "left_hard",
+                    "right_hard",
+                    "left_medium",
+                    "right_medium",
+                ]
+                self.settings.stimulus_modality = "visual"
+                # change training stage
+                self.settings.current_training_stage = "TwoAFC_visual_hard"
+
+        return None
+
+    def check_progression_from_tafc_visual_hard(self) -> None:
+        """
+        This method checks if the animal is ready to get promoted from
+        TwoAFC visual hard to TwoAFC auditory.
+        """
+        pass
+
 
 # for debugging purposes
 if __name__ == "__main__":
     import random
 
     import pandas as pd
+
     training = TrainingSettings()
     dfdir = "/home/pi/Downloads/B15.csv"
     training.df = pd.read_csv(dfdir, sep=";")

@@ -36,7 +36,7 @@ class TwoAFC(Task):
 
     def start(self):
 
-        print("TwoAFC starts")
+        print("TwoAFC starts in stage {0}".format(self.settings.training_stage))
 
         ## Initiate conditions that won't change during training
         # Trial start state:
@@ -44,7 +44,7 @@ class TwoAFC(Task):
         self.ready_to_initiate_output = [
             (
                 Output.PWM2,
-                self.settings.middle_port_light_intensity,
+                int(self.settings.middle_port_light_intensity * 255),
             )
         ]
 
@@ -95,14 +95,21 @@ class TwoAFC(Task):
         ## Set the variables for the stimulus states and the possible choices
         # based on the trial type
         self.stimulus_state_output = []
+        # get the brightness of the incorrect side port
+        if "easy" in self.this_trial_type:
+            incorrect_brightness = self.settings.side_port_light_intensities[0]
+        elif "medium" in self.this_trial_type:
+            incorrect_brightness = self.settings.side_port_light_intensities[1]
+        elif "hard" in self.this_trial_type:
+            incorrect_brightness = self.settings.side_port_light_intensities[2]
+        # set the output for the stimulus state depending on the side
         if "left" in self.this_trial_type:
             self.stimulus_state_output.append(
-                (Output.PWM1, self.settings.side_port_light_intensities[-1])
+                (Output.PWM1, int(self.settings.side_port_light_intensities[-1] * 255))
             )
-            if "hard" in self.this_trial_type:
-                self.stimulus_state_output.append(
-                    (Output.PWM3, self.settings.side_port_light_intensities[0])
-                )
+            self.stimulus_state_output.append(
+                (Output.PWM3, int(incorrect_brightness * 255))
+            )
             self.left_poke_action = "reward_state"
             self.valve_to_open = Output.Valve1
             self.valve_opening_time = self.left_valve_opening_time
@@ -110,12 +117,11 @@ class TwoAFC(Task):
 
         elif "right" in self.this_trial_type:
             self.stimulus_state_output.append(
-                (Output.PWM3, self.settings.side_port_light_intensities[-1])
+                (Output.PWM3, int(self.settings.side_port_light_intensities[-1] * 255))
             )
-            if "hard" in self.this_trial_type:
-                self.stimulus_state_output.append(
-                    (Output.PWM1, self.settings.side_port_light_intensities[0])
-                )
+            self.stimulus_state_output.append(
+                (Output.PWM1, int(incorrect_brightness * 255))
+            )
             self.left_poke_action = self.punish_condition
             self.right_poke_action = "reward_state"
             self.valve_to_open = Output.Valve3
@@ -155,8 +161,8 @@ class TwoAFC(Task):
             state_timer=self.time_to_hold_response,
             state_change_conditions={
                 Event.Port2Out: "ready_to_initiate",
-                Event.Tup: "stimulus_state"
-                },
+                Event.Tup: "stimulus_state",
+            },
             output_actions=[],
         )
 
@@ -211,12 +217,16 @@ class TwoAFC(Task):
         self.bpod.register_value("holding_time", self.time_to_hold_response)
         # if trial was correct, increase the holding time with a limit
         if was_trial_correct:
-            new_holding_time = self.time_to_hold_response + self.settings.holding_response_time_step
-            self.time_to_hold_response = np.min(new_holding_time, self.settings.holding_response_time_max)
+            new_holding_time = (
+                self.time_to_hold_response + self.settings.holding_response_time_step
+            )
+            self.time_to_hold_response = np.min(
+                new_holding_time, self.settings.holding_response_time_max
+            )
 
     def close(self):
         print("Closing the task")
-    
+
     def get_performance_of_trial(self) -> bool:
         """
         This method calculates the performance of a trial, comparing the trial type
@@ -235,7 +245,7 @@ class TwoAFC(Task):
             return True
         else:
             return False
-        
+
     def find_first_occurrence(self, event_list, targets):
         for event in event_list:
             if event in targets:

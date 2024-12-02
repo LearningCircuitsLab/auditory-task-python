@@ -30,7 +30,7 @@ ftl_task.subject = "test_subject"
 # Activate a virtual mouse and let it know about the bpod
 virtual_mouse = VirtualMouse(ftl_task.bpod)
 # Change how fast the mouse learns
-virtual_mouse.learning_rate = .005
+virtual_mouse.learning_rate = 0.005
 # Set the maximum number of trials
 virtual_mouse.trial_limit = 25
 
@@ -46,7 +46,7 @@ print("Initialization time: ", t_endinit - t_start)
 
 # Run the task
 ftl_task.run_in_thread(daemon=False)
-time.sleep(.5)
+time.sleep(0.5)
 
 t_loop = time.time()
 print("Thread time: ", t_loop - t_endinit)
@@ -55,7 +55,7 @@ print("Thread time: ", t_loop - t_endinit)
 while virtual_mouse.trial_number_counter < virtual_mouse.trial_limit:
     virtual_mouse.read_trial_type(ftl_task.this_trial_type)
     virtual_mouse.move_mouse()
-    
+
     time_movements.append(time.time() - t_loop)
     t_loop = time.time()
 
@@ -64,7 +64,7 @@ while virtual_mouse.trial_number_counter < virtual_mouse.trial_limit:
     # this is the step that takes longer!!!!
     while virtual_mouse.trial_number_counter != ftl_task.current_trial:
         time.sleep(0.1 / SPEED)
-    
+
     time_trial_finish.append(time.time() - t_loop)
     t_loop = time.time()
 
@@ -80,7 +80,9 @@ while virtual_mouse.trial_number_counter < virtual_mouse.trial_limit:
 
 print("Virtual Mouse has finished running the task")
 print("Average time for movements: ", sum(time_movements) / len(time_movements))
-print("Average time for trial finish: ", sum(time_trial_finish) / len(time_trial_finish))
+print(
+    "Average time for trial finish: ", sum(time_trial_finish) / len(time_trial_finish)
+)
 print("Average time for plot update: ", sum(time_plot_update) / len(time_plot_update))
 time.sleep(2)
 ftl_task.disconnect_and_save()

@@ -32,7 +32,7 @@ class Habituation(Task):
         self.ready_to_initiate_output = [
             (
                 Output.PWM2,
-                self.settings.middle_port_light_intensity,
+                int(self.settings.middle_port_light_intensity * 255),
             )
         ]
 
@@ -47,8 +47,7 @@ class Habituation(Task):
         )
 
         # use maximum light intensity for both side ports
-        self.light_intensity_left = self.settings.side_port_light_intensities[-1]
-        self.light_intensity_right = self.settings.side_port_light_intensities[-1]
+        self.light_intensity_left = self.light_intensity_right = int(self.settings.side_port_light_intensities[-1] * 255)
 
     def create_trial(self):
         """
@@ -104,8 +103,8 @@ class Habituation(Task):
                 Event.Port3In: "reward_state_right",
             },
             output_actions=[
-                (Output.PWM1,self.light_intensity_left),
-                (Output.PWM3,self.light_intensity_right),
+                (Output.PWM1, self.light_intensity_left),
+                (Output.PWM3, self.light_intensity_right),
             ],
         )
 
