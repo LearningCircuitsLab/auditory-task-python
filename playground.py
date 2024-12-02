@@ -22,4 +22,21 @@ np.sum(np.random.exponential(30, 10000) < 30) / 10000
 import matplotlib.pyplot as plt
 
 plt.hist(np.random.exponential(30, 10000), bins=100)
-# %%# %%
+# %%
+# from chatgpt
+n_samples = 10000
+lower_bound = 20
+upper_bound = 50
+optimal_lambda = 0.0607
+u = np.random.uniform(0, 1, n_samples)  # Uniform samples
+samples = lower_bound - np.log(1 - u * (1 - np.exp(-optimal_lambda * (upper_bound - lower_bound)))) / optimal_lambda
+
+plt.hist(samples, bins=100)
+plt.show()
+
+# 
+# # %%
+# %%
+import numpy as np
+np.random.uniform(0, 1)
+# %%
