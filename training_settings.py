@@ -34,7 +34,10 @@ Progression rules:
   This is implemented in the task, but parameters for how to do this are here.
 - Animals move to the hard version of TwoAFC visual after after 3 consecutive 
   sessions with over 350 trials and with over 90% performance.
-- Animals move to auditory version .TODO
+- Animals move to auditory version when they complete over 1000 trials on
+  the hard version of the visual task.
+- Animals move to the hard version of the auditory task is the same as the
+  visual case.
 """
 
 
@@ -106,7 +109,8 @@ class TrainingSettings(Training):
         self.settings.punishment_time = 1 # in seconds
         # stimulus modality
         self.settings.stimulus_modality = "visual"
-        # trial types
+        self.settings.stimulus_modality_block_size = 30
+        # trial types (e.g. "left_easy", "right_hard")
         self.settings.trial_types = []
         # parameters associated with trial types
         self.settings.side_port_light_intensities = [0, .1, .2, .3]
@@ -148,9 +152,11 @@ class TrainingSettings(Training):
             case "Habituation":
                 self.check_progression_from_habituation()
             case "TwoAFC_visual_easy":
-                self.check_progression_from_tafc_visual_easy()
+                self.check_progression_from_tafc_easy()
             case "TwoAFC_visual_hard":
                 self.check_progression_from_tafc_visual_hard()
+            case "TwoAFC_auditory_easy":
+                self.check_progression_from_tafc_easy()
             case _:
                 # raise an error
                 log.error(
@@ -174,12 +180,12 @@ class TrainingSettings(Training):
 
         return None
 
-    def check_progression_from_tafc_visual_easy(self) -> None:
+    def check_progression_from_tafc_easy(self) -> None:
         """
         This method checks if the animal is ready to get promoted from
-        TwoAFC visual easy to TwoAFC visual hard.
+        TwoAFC easy to TwoAFC hard. Equal for both modalities.
         """
-        # logic to promote the animal to the hard visual training stage:
+        # logic to promote the animal to the hard training stage:
         # after 3 consecutive sessions with over 350 trials and over 90% performance
         total_sessions = self.df.session.nunique()
         n_sessions = 3
@@ -208,18 +214,34 @@ class TrainingSettings(Training):
                     "left_medium",
                     "right_medium",
                 ]
-                self.settings.stimulus_modality = "visual"
                 # change training stage
-                self.settings.current_training_stage = "TwoAFC_visual_hard"
+                match self.settings.stimulus_modality:
+                    case "visual":
+                        self.settings.current_training_stage = "TwoAFC_visual_hard"
+                    case "auditory":
+                        self.settings.current_training_stage = "TwoAFC_auditory_hard"
+                    case _:
+                        # raise an error
+                        log.error(
+                            f"Stimulus modality {self.settings.stimulus_modality} not recognized."
+                        )
 
         return None
 
     def check_progression_from_tafc_visual_hard(self) -> None:
         """
         This method checks if the animal is ready to get promoted from
-        TwoAFC visual hard to TwoAFC auditory.
+        TwoAFC visual hard to TwoAFC auditory easy.
         """
-        pass
+        # logic to promote the animal to the auditory training stage:
+        # after 1000 trials in the hard visual training stage
+        total_trials = self.df[self.df.current_training_stage == "TwoAFC_visual_hard"].shape[0]
+        if total_trials >= 1000:
+            self.settings.stimulus_modality = "auditory"
+            self.settings.current_training_stage = "TwoAFC_auditory_easy"
+            self.settings.trial_types = ["left_easy", "right_easy"]
+
+        return None
 
 
 # for debugging purposes
