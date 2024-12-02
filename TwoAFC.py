@@ -1,7 +1,5 @@
-import pprint
 import random
 
-import numpy as np
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
@@ -36,7 +34,7 @@ class TwoAFC(Task):
 
     def start(self):
 
-        print("TwoAFC starts in stage {0}".format(self.settings.training_stage))
+        print("TwoAFC starts in stage {0}".format(self.settings.current_training_stage))
 
         ## Initiate conditions that won't change during training
         # Trial start state:
@@ -220,7 +218,7 @@ class TwoAFC(Task):
             new_holding_time = (
                 self.time_to_hold_response + self.settings.holding_response_time_step
             )
-            self.time_to_hold_response = np.min(
+            self.time_to_hold_response = min(
                 new_holding_time, self.settings.holding_response_time_max
             )
 
@@ -267,7 +265,7 @@ class TwoAFC(Task):
 #     training.default_training_settings()
 #     task.settings = training.settings
 
-#     task.run_one_trial_in_thread()
+#     task.run_in_thread()
 #     time.sleep(.5)
 #     # poke in the middle port
 #     task.bpod.manual_override_input("Port2In")

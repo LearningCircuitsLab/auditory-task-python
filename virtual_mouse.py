@@ -14,7 +14,7 @@ class VirtualMouse:
 
     def portX_in(self, port_number):
         # somehow it has to poke out first for this to work
-        self.my_bpod.manual_override_input("Port" + str(port_number) + "Out")
+        # self.my_bpod.manual_override_input("Port" + str(port_number) + "Out")
         self.my_bpod.manual_override_input("Port" + str(port_number) + "In")
 
     def portX_out(self, port_number):
@@ -60,13 +60,15 @@ class VirtualMouse:
     def movements_for_trial(self, trial_type):
         # check if it is moment to poke in the center port
         self.listen_for_trial_start()
-        self.trial_number_counter += 1
         # poke in center port, then left then right
         for x in [2, 1, 3]:
             self.portX_in(x)
             time.sleep(0.1 / self.speed)
             self.portX_out(x)
             time.sleep(0.2 / self.speed)
+        print("Done with attempt ")
+        self.trial_number_counter += 1
+
 
         # TODO: Implement the following for learning
         # # choose a port to poke
