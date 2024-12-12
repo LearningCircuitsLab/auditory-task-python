@@ -6,6 +6,7 @@
 
 import numpy as np
 
+
 def get_session_performance(df, session: int) -> float:
     """
     TODO: move this to a different package
@@ -23,7 +24,7 @@ def get_session_number_of_trials(df, session: int) -> int:
     return df[df.session == session].shape[0]
 
 
-def get_block_size_truncated_exponential() -> int:
+def get_block_size_truncexp_mean30() -> int:
     """
     This method returns a block size following a truncated exponential distribution.
     Optimized to get the mean of the distribution to be 30 using ChatGPT.

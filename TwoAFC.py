@@ -3,6 +3,8 @@ import random
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
+from utils import get_block_size_truncexp_mean30
+
 
 class TwoAFC(Task):
     def __init__(self):
@@ -10,22 +12,12 @@ class TwoAFC(Task):
 
         self.info = """
 
-        Follow The Light Task
+        Two Alternative Force Choice Task
         -------------------
 
-        This task is a simple visual task where the mouse has
-        to poke the center port to start a trial.
-        After the center port is poked,
-        one of the two side ports will be illuminated.
-        The mouse has to hold the center port a certain amount of time.
-        If the mouse pokes the correct side port, it receives a reward.
-        If the mouse pokes the wrong side port, it receives a punishment.
-
-        It contains 2 training stages:
-        - Training stage 1: Only one side port is illuminated and gives reward.
-                            No punishment is given, and the mouse can choose again.
-        - Training stage 2: Both ports are illuminated with different intensity.
-                            Brighter port gives reward, the other one gives punishment.
+        It works with visual and auditory modality, or both.
+        It has an anti-bias. #TODO
+        Implement opto. #TODO
         
         The progression through the stages is defined in the training_settings.py file.
         """
@@ -66,7 +58,13 @@ class TwoAFC(Task):
         # determine the initial holding time for the center port
         self.time_to_hold_response = self.settings.holding_response_time
 
-    def configure_gui(self):
+        # if doing multisensory, set the modality to random and generate a block
+        if self.settings.stimulus_modality == "multisensory":
+            self.stimulus_modality = random.choice(["visual", "auditory"])
+            self.current_stim_mod_block_trials_left = get_block_size_truncexp_mean30()
+            self.stim_mod_block_counter = 0
+
+    def configure_gui(self) -> None:
         # TODO: implement this method
         pass
 
@@ -88,77 +86,18 @@ class TwoAFC(Task):
 
         ## Define the conditions for the trial
         # define the modality of the stimulus
-        match self.settings.stimulus_modality:
-            case "visual":
-                self.stimulus_modality = "visual"
-            case "auditory":
-                self.stimulus_modality = "auditory"
-            case "multisensory":
-                pass
-                #TODO: implement multisensory
-                # do here a block logic
-            case _:
-                raise ValueError("Stimulus modality not recognized")
+        self.set_stimulus_modality()
 
         # pick a trial type. For now, random
-        # TODO: implement an anti-bias algorithm
-        self.this_trial_type = random.choice(self.settings.trial_types)
+        self.generate_trial_type()
 
         ## Set the variables for the stimulus states and the possible choices
-        # based on the trial type
-        self.stimulus_state_output = []
-        # get the brightness of the incorrect side port
-        match self.stimulus_modality:
-            case "visual":
-                if "easy" in self.this_trial_type:
-                    incorrect_brightness = self.settings.side_port_light_intensities[0]
-                elif "medium" in self.this_trial_type:
-                    incorrect_brightness = self.settings.side_port_light_intensities[1]
-                elif "hard" in self.this_trial_type:
-                    incorrect_brightness = self.settings.side_port_light_intensities[2]
-            case "auditory":
-                pass
-                #TODO: implement auditory
-        # set the output for the stimulus state depending on the side
-        if "left" in self.this_trial_type:
-            match self.stimulus_modality:
-                case "visual":
-                    self.stimulus_state_output.append(
-                        (Output.PWM1, int(self.settings.side_port_light_intensities[-1] * 255))
-                    )
-                    self.stimulus_state_output.append(
-                        (Output.PWM3, int(incorrect_brightness * 255))
-                    )
-                case "auditory":
-                    pass
-                    #TODO: implement auditory
-            
-            self.left_poke_action = "reward_state"
-            self.right_poke_action = self.punish_condition
-            self.valve_to_open = Output.Valve1
-            self.valve_opening_time = self.left_valve_opening_time
-
-        elif "right" in self.this_trial_type:
-            match self.stimulus_modality:
-                case "visual":
-                    self.stimulus_state_output.append(
-                        (Output.PWM3, int(self.settings.side_port_light_intensities[-1] * 255))
-                    )
-                    self.stimulus_state_output.append(
-                        (Output.PWM1, int(incorrect_brightness * 255))
-                    )
-                case "auditory":
-                    pass
-                    #TODO: implement auditory
-            self.left_poke_action = self.punish_condition
-            self.right_poke_action = "reward_state"
-            self.valve_to_open = Output.Valve3
-            self.valve_opening_time = self.right_valve_opening_time
+        self.set_stimulus_state_conditions()
 
         # assemble the state machine
         self.assemble_state_machine()
 
-    def assemble_state_machine(self):
+    def assemble_state_machine(self) -> None:
         # 'start_of_trial' state that sends a TTL pulse from the BNC channel 2
         # This can be used to synchronize the task with other devices (not used here)
         self.bpod.add_state(
@@ -227,7 +166,7 @@ class TwoAFC(Task):
             output_actions=[],
         )
 
-    def after_trial(self):
+    def after_trial(self) -> None:
         # register the amount of water given to the mouse in this trial
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
@@ -239,6 +178,10 @@ class TwoAFC(Task):
 
         # register the modality of the stimulus
         self.bpod.register_value("stimulus_modality", self.stimulus_modality)
+
+        # if multisensory, register the block number
+        if self.settings.stimulus_modality == "multisensory":
+            self.bpod.register_value("stimulus_modality_block_number", self.stim_mod_block_counter)
 
         # we will also record if the trial was correct or not
         was_trial_correct = self.get_performance_of_trial()
@@ -255,8 +198,94 @@ class TwoAFC(Task):
                 new_holding_time, self.settings.holding_response_time_max
             )
 
-    def close(self):
+    def close(self) -> None:
         print("Closing the task")
+    
+    def generate_trial_type(self) -> None:
+        # random by default
+        self.this_trial_type = random.choice(self.settings.trial_types)
+        # change it if anti-bias is on
+        if self.settings.anti_bias_on:
+            # find the bias of the mouse
+            # look into the last 15 trials for mistakes
+            # TODO: implement this
+            pass
+            
+
+    def set_stimulus_modality(self) -> None:
+        match self.settings.stimulus_modality:
+            case "visual":
+                self.stimulus_modality = "visual"
+            case "auditory":
+                self.stimulus_modality = "auditory"
+            case "multisensory":
+                self.current_stim_mod_block_trials_left -= 1
+                if self.current_stim_mod_block_trials_left == 0:
+                    # change the modality
+                    if self.stimulus_modality == "visual":
+                        self.stimulus_modality = "auditory"
+                    else:
+                        self.stimulus_modality = "visual"
+                    # generate a new block
+                    self.current_stim_mod_block_trials_left = get_block_size_truncexp_mean30()
+                    self.stim_mod_block_counter += 1
+                    print("Entering block {0}, with {1} amount of trials".format(
+                        self.stim_mod_block_counter,
+                        self.current_stim_mod_block_trials_left,
+                        ))
+            case _:
+                raise ValueError("Stimulus modality not recognized")
+
+    def set_stimulus_state_conditions(self) -> None:
+        # based on the trial type
+        self.stimulus_state_output = []
+        # get the brightness of the incorrect side port
+        match self.stimulus_modality:
+            case "visual":
+                if "easy" in self.this_trial_type:
+                    incorrect_brightness = self.settings.side_port_light_intensities[0]
+                elif "medium" in self.this_trial_type:
+                    incorrect_brightness = self.settings.side_port_light_intensities[1]
+                elif "hard" in self.this_trial_type:
+                    incorrect_brightness = self.settings.side_port_light_intensities[2]
+            case "auditory":
+                pass
+                #TODO: implement auditory
+        # set the output for the stimulus state depending on the side
+        if "left" in self.this_trial_type:
+            match self.stimulus_modality:
+                case "visual":
+                    self.stimulus_state_output.append(
+                        (Output.PWM1, int(self.settings.side_port_light_intensities[-1] * 255))
+                    )
+                    self.stimulus_state_output.append(
+                        (Output.PWM3, int(incorrect_brightness * 255))
+                    )
+                case "auditory":
+                    pass
+                    #TODO: implement auditory
+            
+            self.left_poke_action = "reward_state"
+            self.right_poke_action = self.punish_condition
+            self.valve_to_open = Output.Valve1
+            self.valve_opening_time = self.left_valve_opening_time
+
+        elif "right" in self.this_trial_type:
+            match self.stimulus_modality:
+                case "visual":
+                    self.stimulus_state_output.append(
+                        (Output.PWM3, int(self.settings.side_port_light_intensities[-1] * 255))
+                    )
+                    self.stimulus_state_output.append(
+                        (Output.PWM1, int(incorrect_brightness * 255))
+                    )
+                case "auditory":
+                    pass
+                    #TODO: implement auditory
+            self.left_poke_action = self.punish_condition
+            self.right_poke_action = "reward_state"
+            self.valve_to_open = Output.Valve3
+            self.valve_opening_time = self.right_valve_opening_time
 
     def get_performance_of_trial(self) -> bool:
         """
@@ -311,4 +340,5 @@ class TwoAFC(Task):
 #     task.bpod.manual_override_input("Port3In")
 #     task.bpod.manual_override_input("Port3Out")
 #     # leave enough time for the bpod to finish
+#     time.sleep(2)
 #     time.sleep(2)

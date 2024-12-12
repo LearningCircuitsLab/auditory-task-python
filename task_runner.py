@@ -26,6 +26,7 @@ tafc_task.settings.current_training_stage = "TwoAFC_visual_easy"
 tafc_task.settings.trial_types = ["left_easy", "right_easy"]
 tafc_task.settings.holding_response_time = 0.0
 tafc_task.settings.holding_response_time_step = 0.00
+tafc_task.settings.middle_port_light_intensity = .1
 # remove iti to go faster
 tafc_task.settings.iti = .1
 
@@ -37,10 +38,10 @@ virtual_mouse = VirtualMouse(tafc_task.bpod)
 # Change how fast the mouse learns
 virtual_mouse.learning_rate = 0.005
 # Set the maximum number of trials
-virtual_mouse.trial_limit = 5
+virtual_mouse.trial_limit = 15
 
 # Increase the speed of the task and virtual mouse
-SPEED = 50
+SPEED = 5
 virtual_mouse.speed = SPEED
 
 # Use an online plotter to display the results

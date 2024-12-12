@@ -114,6 +114,8 @@ class TrainingSettings(Training):
         self.settings.trial_types = []
         # parameters associated with trial types
         self.settings.side_port_light_intensities = [0, .1, .2, .3]
+        # turn on or off the anti-bias
+        self.settings.anti_bias_on = False
 
     def update_training_settings(self) -> None:
         """
