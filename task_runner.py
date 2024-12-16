@@ -26,9 +26,9 @@ tafc_task.settings.current_training_stage = "TwoAFC_visual_easy"
 tafc_task.settings.trial_types = ["left_easy", "right_easy"]
 tafc_task.settings.holding_response_time = 0.0
 tafc_task.settings.holding_response_time_step = 0.00
-tafc_task.settings.middle_port_light_intensity = .1
+tafc_task.settings.middle_port_light_intensity = 0.1
 # remove iti to go faster
-tafc_task.settings.iti = .1
+tafc_task.settings.iti = 0.1
 
 # Name your subject
 tafc_task.subject = "test_subject"
@@ -70,7 +70,7 @@ while virtual_mouse.trial_number_counter < virtual_mouse.trial_limit:
     # trial counters of the task
     # this is the step that takes longer!!!!
     while previous_trial == tafc_task.current_trial:
-        time.sleep(.1 / SPEED)
+        time.sleep(0.1 / SPEED)
 
     time_trial_finish.append(time.time() - t_loop)
     t_loop = time.time()

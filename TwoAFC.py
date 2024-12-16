@@ -1,9 +1,10 @@
 import random
 
+import numpy as np
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
-from utils import get_block_size_truncexp_mean30
+from utils import get_block_size_truncexp_mean30, get_right_bias
 
 
 class TwoAFC(Task):
@@ -16,7 +17,7 @@ class TwoAFC(Task):
         -------------------
 
         It works with visual and auditory modality, or both.
-        It has an anti-bias. #TODO
+        It has an anti-bias. #TODO: make sure it works as expected
         Implement opto. #TODO
         
         The progression through the stages is defined in the training_settings.py file.
@@ -63,6 +64,12 @@ class TwoAFC(Task):
             self.stimulus_modality = random.choice(["visual", "auditory"])
             self.current_stim_mod_block_trials_left = get_block_size_truncexp_mean30()
             self.stim_mod_block_counter = 0
+        
+        # if anti-bias is on, set the list of the last 15 trials
+        if self.settings.anti_bias_on:
+            # first 
+            self.last_15_trials = np.empty((2, 15))
+            self.last_15_trials[:] = np.nan
 
     def configure_gui(self) -> None:
         # TODO: implement this method
@@ -83,7 +90,7 @@ class TwoAFC(Task):
             self.start_of_trial_transition = "close_door"
         else:
             self.start_of_trial_transition = "ready_to_initiate"
-
+        
         ## Define the conditions for the trial
         # define the modality of the stimulus
         self.set_stimulus_modality()
@@ -174,14 +181,26 @@ class TwoAFC(Task):
 
         # we will also record the trial type, which will be used by training_settings.py
         # to make sure that the animal does not go from the second stage to the first one
-        self.bpod.register_value("trial_type", self.this_trial_type)
+        self.bpod.register_value("correct_side", self.this_trial_side)
 
         # register the modality of the stimulus
         self.bpod.register_value("stimulus_modality", self.stimulus_modality)
 
+        # register the difficulty of the trial
+        self.bpod.register_value("difficulty", self.this_trial_difficulty)
+
+        # register the actual stimuli used
+        self.bpod.register_value("visual_stimuli", self.trial_visual_stimuli)
+        self.bpod.register_value("auditory_stimuli", self.trial_auditory_stimuli)
+        # reset them to None for the next trial
+        self.trial_visual_stimuli = None
+        self.trial_auditory_stimuli = None
+
         # if multisensory, register the block number
         if self.settings.stimulus_modality == "multisensory":
-            self.bpod.register_value("stimulus_modality_block_number", self.stim_mod_block_counter)
+            self.bpod.register_value(
+                "stimulus_modality_block_number", self.stim_mod_block_counter
+            )
 
         # we will also record if the trial was correct or not
         was_trial_correct = self.get_performance_of_trial()
@@ -197,20 +216,31 @@ class TwoAFC(Task):
             self.time_to_hold_response = min(
                 new_holding_time, self.settings.holding_response_time_max
             )
+        
+        # update the list of the last 15 trials for the anti-bias
+        if self.settings.anti_bias_on:
+            self.last_15_trials = np.roll(self.last_15_trials, 1)
+            self.last_15_trials[0, 0] = self.this_trial_side
+            self.last_15_trials[1, 0] = was_trial_correct
 
     def close(self) -> None:
         print("Closing the task")
-    
+
     def generate_trial_type(self) -> None:
-        # random by default
-        self.this_trial_type = random.choice(self.settings.trial_types)
+        # random side by default
+        p = [0.5, 0.5]
         # change it if anti-bias is on
         if self.settings.anti_bias_on:
             # find the bias of the mouse
-            # look into the last 15 trials for mistakes
-            # TODO: implement this
-            pass
-            
+            right_bias = get_right_bias(self.last_15_trials)
+            left_probability = (right_bias + 1) / 2
+            right_probability = 1 - left_probability
+            p = [left_probability, right_probability]
+
+        self.this_trial_side = np.random.choice(self.settings.trial_sides, p=p)
+
+        # random difficulty by default
+        self.this_trial_difficulty = random.choice(self.settings.trial_difficulties)
 
     def set_stimulus_modality(self) -> None:
         match self.settings.stimulus_modality:
@@ -227,65 +257,67 @@ class TwoAFC(Task):
                     else:
                         self.stimulus_modality = "visual"
                     # generate a new block
-                    self.current_stim_mod_block_trials_left = get_block_size_truncexp_mean30()
+                    self.current_stim_mod_block_trials_left = (
+                        get_block_size_truncexp_mean30()
+                    )
                     self.stim_mod_block_counter += 1
-                    print("Entering block {0}, with {1} amount of trials".format(
-                        self.stim_mod_block_counter,
-                        self.current_stim_mod_block_trials_left,
-                        ))
+                    print(
+                        "Entering block {0}, with {1} amount of trials".format(
+                            self.stim_mod_block_counter,
+                            self.current_stim_mod_block_trials_left,
+                        )
+                    )
             case _:
                 raise ValueError("Stimulus modality not recognized")
 
     def set_stimulus_state_conditions(self) -> None:
-        # based on the trial type
-        self.stimulus_state_output = []
-        # get the brightness of the incorrect side port
-        match self.stimulus_modality:
-            case "visual":
-                if "easy" in self.this_trial_type:
-                    incorrect_brightness = self.settings.side_port_light_intensities[0]
-                elif "medium" in self.this_trial_type:
-                    incorrect_brightness = self.settings.side_port_light_intensities[1]
-                elif "hard" in self.this_trial_type:
-                    incorrect_brightness = self.settings.side_port_light_intensities[2]
-            case "auditory":
-                pass
-                #TODO: implement auditory
         # set the output for the stimulus state depending on the side
-        if "left" in self.this_trial_type:
-            match self.stimulus_modality:
-                case "visual":
-                    self.stimulus_state_output.append(
-                        (Output.PWM1, int(self.settings.side_port_light_intensities[-1] * 255))
-                    )
-                    self.stimulus_state_output.append(
-                        (Output.PWM3, int(incorrect_brightness * 255))
-                    )
-                case "auditory":
-                    pass
-                    #TODO: implement auditory
-            
+        if self.this_trial_side == "left":
+            self.correct_port_ID = Output.PWM1
+            self.incorrect_port_ID = Output.PWM3
             self.left_poke_action = "reward_state"
             self.right_poke_action = self.punish_condition
             self.valve_to_open = Output.Valve1
             self.valve_opening_time = self.left_valve_opening_time
 
-        elif "right" in self.this_trial_type:
-            match self.stimulus_modality:
-                case "visual":
-                    self.stimulus_state_output.append(
-                        (Output.PWM3, int(self.settings.side_port_light_intensities[-1] * 255))
-                    )
-                    self.stimulus_state_output.append(
-                        (Output.PWM1, int(incorrect_brightness * 255))
-                    )
-                case "auditory":
-                    pass
-                    #TODO: implement auditory
+        elif self.this_trial_side == "right":
+            self.correct_port_ID = Output.PWM3
+            self.incorrect_port_ID = Output.PWM1
             self.left_poke_action = self.punish_condition
             self.right_poke_action = "reward_state"
             self.valve_to_open = Output.Valve3
             self.valve_opening_time = self.right_valve_opening_time
+        
+        # define conditions based on the trial type
+        match self.stimulus_modality:
+            case "visual":
+                # choose the incorrect brightness at random
+                l_b, h_b = self.settings.side_port_intensities_extremes
+                self.incorrect_brightness = random.uniform(l_b, h_b)
+                # pick the correct brightness difference according to the difficulty
+                self.correct_brightness = self.incorrect_brightness * (
+                    1
+                    + self.settings.trial_difficulty_parameters[
+                        self.this_trial_difficulty
+                    ]["light_intensity_difference"]
+                )
+                # store as the trial stimuli
+                self.trial_visual_stimuli = (self.correct_brightness, self.incorrect_brightness)
+                # set the output of the stimulus state
+                self.stimulus_state_output = [
+                    (
+                        self.correct_port_ID,
+                        int(self.correct_brightness * 255),
+                    ),
+                    (
+                        self.incorrect_port_ID,
+                        int(self.incorrect_brightness * 255),
+                    ),
+                ]
+            case "auditory":
+                pass
+                # TODO: implement auditory
+        
 
     def get_performance_of_trial(self) -> bool:
         """
@@ -299,9 +331,9 @@ class TwoAFC(Task):
             ["Port1In", "Port3In"],
         )
         # check if the mouse poked the correct port
-        if first_poke == "Port1In" and "left" in self.this_trial_type:
+        if first_poke == "Port1In" and self.this_trial_side == "left":
             return True
-        elif first_poke == "Port3In" and "right" in self.this_trial_type:
+        elif first_poke == "Port3In" and self.this_trial_side == "right":
             return True
         else:
             return False

@@ -47,7 +47,9 @@ class Habituation(Task):
         )
 
         # use maximum light intensity for both side ports
-        self.light_intensity_left = self.light_intensity_right = int(self.settings.side_port_light_intensities[-1] * 255)
+        self.light_intensity_left = self.light_intensity_right = int(
+            self.settings.side_port_light_intensities[-1] * 255
+        )
 
     def create_trial(self):
         """

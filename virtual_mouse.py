@@ -69,7 +69,6 @@ class VirtualMouse:
         print("Done with attempt ")
         self.trial_number_counter += 1
 
-
         # TODO: Implement the following for learning
         # # choose a port to poke
         # port_to_poke = self.port_picker(trial_type, self.performance)

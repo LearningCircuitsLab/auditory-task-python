@@ -12,11 +12,11 @@ and after poking both sides light up. Mouse receives reward for poking
 in any port. This stage is used to habituate the mouse to the task.
 
 *Second stage is TwoAFC Task using visual stimuli.
-Here, center port lights up and after poking only one of the side ports lights up.
-Mouse receives reward for poking in the correct port.
+Here, center port lights up and after poking both ports light up with an easy discrimination.
+Mouse receives reward for poking in the brightest port.
 
 *Third stage is TwoAFC using visual stimuli with increased difficulty.
-Both ports light up, but one of them is brighter. Mouse receives reward for poking.
+Both ports light up, but brightness can be more similar. Mouse receives reward for poking.
 
 *Fourth stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking
 a cloud of tones is played. Mouse receives reward for poking in the correct port.TODO
@@ -110,12 +110,34 @@ class TrainingSettings(Training):
         # stimulus modality
         self.settings.stimulus_modality = "visual"
         self.settings.stimulus_modality_block_size = 30
-        # trial types (e.g. "left_easy", "right_hard")
-        self.settings.trial_types = []
-        # parameters associated with trial types
-        self.settings.side_port_light_intensities = [0, .1, .2, .3]
+        # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
+        self.settings.trial_sides = ["left", "right"]
+        # trial difficulty (e.g. ["easy", "medium", "hard"])
+        self.settings.trial_difficulties = ["easy"]
         # turn on or off the anti-bias
         self.settings.anti_bias_on = False
+
+        ## Things that should not be messed up with once they are settled on
+        # parameters associated with trial difficulties
+        self.settings.trial_difficulty_parameters = {
+            "easy": {
+                "light_intensity_difference": 0.5,
+                "frequency_proportion": 98,
+            },
+            "medium": {
+                "light_intensity_difference": 0.25,
+                "frequency_proportion": 82,
+            },
+            "hard": {
+                "light_intensity_difference": 0.1,
+                "frequency_proportion": 66,
+            },
+        }
+        # basic parameters about the stimuli
+        # how many possible intensities can the side port have (0 - 0.6)*
+        # * 0.6 can vary depending on the multiplier factor (above 0.5 for easy)
+        self.settings.side_port_intensities_extremes = [0.05, 0.6]
+
 
     def update_training_settings(self) -> None:
         """
@@ -178,7 +200,7 @@ class TrainingSettings(Training):
             self.settings.next_task = "TwoAFC"
             self.settings.current_training_stage = "TwoAFC_visual_easy"
             self.settings.stimulus_modality = "visual"
-            self.settings.trial_types = ["left_easy", "right_easy"]
+            self.settings.trial_difficulties = ["easy"]
 
         return None
 
@@ -207,15 +229,8 @@ class TrainingSettings(Training):
                     for performance in previous_performances
                 ]
             ) and all([n_trials > 350 for n_trials in previous_n_trials]):
-                # change the trial types
-                self.settings.trial_types = [
-                    "left_easy",
-                    "right_easy",
-                    "left_hard",
-                    "right_hard",
-                    "left_medium",
-                    "right_medium",
-                ]
+                # change the trial difficulty
+                self.settings.trial_difficulties = ["easy", "medium", "hard"]
                 # change training stage
                 match self.settings.stimulus_modality:
                     case "visual":
@@ -241,7 +256,7 @@ class TrainingSettings(Training):
         if total_trials >= 1000:
             self.settings.stimulus_modality = "auditory"
             self.settings.current_training_stage = "TwoAFC_auditory_easy"
-            self.settings.trial_types = ["left_easy", "right_easy"]
+            self.settings.trial_difficulties = ["easy"]
 
         return None
 

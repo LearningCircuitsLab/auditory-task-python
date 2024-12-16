@@ -33,6 +33,32 @@ def get_block_size_truncexp_mean30() -> int:
     upper_bound = 50
     optimal_lambda = 0.0607
     u = np.random.uniform(0, 1)  # Uniform sample
-    block_size = lower_bound - np.log(1 - u * (1 - np.exp(-optimal_lambda * (upper_bound - lower_bound)))) / optimal_lambda
+    block_size = (
+        lower_bound
+        - np.log(1 - u * (1 - np.exp(-optimal_lambda * (upper_bound - lower_bound))))
+        / optimal_lambda
+    )
 
     return int(block_size)
+
+
+def get_right_bias(side_and_correct_array: np.ndarray) -> float:
+    """
+    This method calculates the right bias in the data.
+
+    Args:
+        side_and_correct_array (np.ndarray): Array with the side (left or right) and correct answer (boolean)
+    """
+    if side_and_correct_array.shape[0] != 2:
+        raise ValueError("Input array must have exactly two rows")
+
+    first_pokes = side_and_correct_array[0, :]
+    correct_list = side_and_correct_array[1, :]    
+    wrong_sides = first_pokes[correct_list == "False"]
+    if len(wrong_sides) == 0:
+        return 0
+    wrong_side_proportion = len(wrong_sides) / len(first_pokes)
+    wrong_right_proportion = wrong_side_proportion * np.nansum(wrong_sides == "right") / len(wrong_sides)
+    wrong_left_proportion = wrong_side_proportion * np.nansum(wrong_sides == "left") / len(wrong_sides)
+
+    return wrong_right_proportion - wrong_left_proportion
