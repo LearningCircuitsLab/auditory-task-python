@@ -44,4 +44,32 @@ plt.show()
 import numpy as np
 
 np.random.uniform(0, 1)
+from village.classes.task import Event, Output, Task
+
 # %%
+# connect to the bpod
+from village.devices.bpod import bpod
+
+bpod.add_state(
+    state_name="ready_to_initiate",
+    state_timer=0,
+    state_change_conditions={},
+    output_actions=[
+        (
+            Output.PWM2,
+            int(255),
+        )
+    ],
+)
+
+bpod.send_and_run_state_machine()
+import matplotlib.pyplot as plt
+
+# %%
+from utils import get_block_size_truncexp_mean30
+
+x = [get_block_size_truncexp_mean30() for _ in range(1000)]
+
+plt.hist(x, bins=30)
+
+plt.hist(x, bins=30)

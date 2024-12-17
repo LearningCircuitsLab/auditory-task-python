@@ -4,7 +4,8 @@ import numpy as np
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
-from utils import get_block_size_truncexp_mean30, get_right_bias
+from sound_functions import cloud_of_tones
+from utils import get_block_size_uniform_pm30, get_right_bias
 
 
 class TwoAFC(Task):
@@ -62,12 +63,12 @@ class TwoAFC(Task):
         # if doing multisensory, set the modality to random and generate a block
         if self.settings.stimulus_modality == "multisensory":
             self.stimulus_modality = random.choice(["visual", "auditory"])
-            self.current_stim_mod_block_trials_left = get_block_size_truncexp_mean30()
-            self.stim_mod_block_counter = 0
-        
+            self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30()
+            self.stim_mod_block_counter = 1
+
         # if anti-bias is on, set the list of the last 15 trials
         if self.settings.anti_bias_on:
-            # first 
+            # first
             self.last_15_trials = np.empty((2, 15))
             self.last_15_trials[:] = np.nan
 
@@ -90,7 +91,7 @@ class TwoAFC(Task):
             self.start_of_trial_transition = "close_door"
         else:
             self.start_of_trial_transition = "ready_to_initiate"
-        
+
         ## Define the conditions for the trial
         # define the modality of the stimulus
         self.set_stimulus_modality()
@@ -216,7 +217,7 @@ class TwoAFC(Task):
             self.time_to_hold_response = min(
                 new_holding_time, self.settings.holding_response_time_max
             )
-        
+
         # update the list of the last 15 trials for the anti-bias
         if self.settings.anti_bias_on:
             self.last_15_trials = np.roll(self.last_15_trials, 1)
@@ -258,7 +259,7 @@ class TwoAFC(Task):
                         self.stimulus_modality = "visual"
                     # generate a new block
                     self.current_stim_mod_block_trials_left = (
-                        get_block_size_truncexp_mean30()
+                        get_block_size_uniform_pm30()
                     )
                     self.stim_mod_block_counter += 1
                     print(
@@ -287,7 +288,7 @@ class TwoAFC(Task):
             self.right_poke_action = "reward_state"
             self.valve_to_open = Output.Valve3
             self.valve_opening_time = self.right_valve_opening_time
-        
+
         # define conditions based on the trial type
         match self.stimulus_modality:
             case "visual":
@@ -302,7 +303,10 @@ class TwoAFC(Task):
                     ]["light_intensity_difference"]
                 )
                 # store as the trial stimuli
-                self.trial_visual_stimuli = (self.correct_brightness, self.incorrect_brightness)
+                self.trial_visual_stimuli = (
+                    self.correct_brightness,
+                    self.incorrect_brightness,
+                )
                 # set the output of the stimulus state
                 self.stimulus_state_output = [
                     (
@@ -315,9 +319,28 @@ class TwoAFC(Task):
                     ),
                 ]
             case "auditory":
-                pass
-                # TODO: implement auditory
-        
+                # dominant frequency "low" or "high"
+                dominant_freq = self.settings.auditory_contingency[self.this_trial_side]
+                # get the proportion of tones for the dominant frequency
+                dominant_proportion = self.settings.trial_difficulty_parameters[
+                    self.this_trial_difficulty
+                ]["frequency_proportion"]
+                # determine the proportion of high and low frequencies
+                match dominant_freq:
+                    case "low":
+                        low_perc = dominant_proportion
+                        high_perc = 1 - dominant_proportion
+                    case "high":
+                        low_perc = 1 - dominant_proportion
+                        high_perc = dominant_proportion
+                # create the sound
+                sound, self.trial_auditory_stimuli = cloud_of_tones(
+                    **self.settings.sound_properties,
+                    high_perc=high_perc,
+                    low_perc=low_perc,
+                )
+
+                # TODO: set the state to play the sound
 
     def get_performance_of_trial(self) -> bool:
         """

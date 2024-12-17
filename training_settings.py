@@ -19,11 +19,11 @@ Mouse receives reward for poking in the brightest port.
 Both ports light up, but brightness can be more similar. Mouse receives reward for poking.
 
 *Fourth stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking
-a cloud of tones is played. Mouse receives reward for poking in the correct port.TODO
+a cloud of tones is played. Mouse receives reward for poking in the correct port.
 
-*Fifth stage is TwoAFC using auditory stimuli with increased difficulty. TODO
+*Fifth stage is TwoAFC using auditory stimuli with increased difficulty.
 
-*Sixth stage interleaves visual and auditory stimuli in easy mode. TODO
+*Sixth stage interleaves visual and auditory stimuli in easy mode. TODO: keep decreasing block size?
 
 *Seventh stage interleaves visual and auditory stimuli in hard mode. TODO
 
@@ -92,7 +92,7 @@ class TrainingSettings(Training):
         # and the user needs to create and define them here
 
         # strenght of the light in the middle port (0-1)
-        self.settings.middle_port_light_intensity = .2
+        self.settings.middle_port_light_intensity = 0.2
         # time the mouse needs to wait in the center port (in seconds)
         self.settings.holding_response_time_min = 0.03
         self.settings.holding_response_time_max = 0.5
@@ -106,18 +106,18 @@ class TrainingSettings(Training):
         self.settings.reward_amount_ml = 5
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
-        self.settings.punishment_time = 1 # in seconds
+        self.settings.punishment_time = 1  # in seconds
         # stimulus modality
         self.settings.stimulus_modality = "visual"
         self.settings.stimulus_modality_block_size = 30
-        # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
-        self.settings.trial_sides = ["left", "right"]
         # trial difficulty (e.g. ["easy", "medium", "hard"])
         self.settings.trial_difficulties = ["easy"]
         # turn on or off the anti-bias
         self.settings.anti_bias_on = False
 
         ## Things that should not be messed up with once they are settled on
+        # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
+        self.settings.trial_sides = ["left", "right"]
         # parameters associated with trial difficulties
         self.settings.trial_difficulty_parameters = {
             "easy": {
@@ -137,7 +137,17 @@ class TrainingSettings(Training):
         # how many possible intensities can the side port have (0 - 0.6)*
         # * 0.6 can vary depending on the multiplier factor (above 0.5 for easy)
         self.settings.side_port_intensities_extremes = [0.05, 0.6]
-
+        self.settings.auditory_contingency = {"left": "low", "right": "high"}
+        self.settings.sound_properties = {
+            "sample_rate": 44100,
+            "duration": 0.5,
+            "ramp_time": 0.005,
+            "amplitude": 0.1,
+            "high_freq": np.logspace(np.log(11000), np.log(20000), 16).tolist(),
+            "low_freq": np.logspace(np.log(5000), np.log(8000), 16).tolist(),
+            "subduration": 0.03,
+            "suboverlap": 0.01,
+        }
 
     def update_training_settings(self) -> None:
         """
@@ -181,6 +191,8 @@ class TrainingSettings(Training):
                 self.check_progression_from_tafc_visual_hard()
             case "TwoAFC_auditory_easy":
                 self.check_progression_from_tafc_easy()
+            case "TwoAFC_auditory_hard":
+                self.check_progression_from_tafc_auditory_hard()
             case _:
                 # raise an error
                 log.error(
@@ -201,7 +213,9 @@ class TrainingSettings(Training):
             self.settings.current_training_stage = "TwoAFC_visual_easy"
             self.settings.stimulus_modality = "visual"
             self.settings.trial_difficulties = ["easy"]
-
+            # trigger alarm
+            self.promotion_alarm()
+            
         return None
 
     def check_progression_from_tafc_easy(self) -> None:
@@ -242,6 +256,7 @@ class TrainingSettings(Training):
                         log.error(
                             f"Stimulus modality {self.settings.stimulus_modality} not recognized."
                         )
+                self.promotion_alarm()
 
         return None
 
@@ -251,15 +266,46 @@ class TrainingSettings(Training):
         TwoAFC visual hard to TwoAFC auditory easy.
         """
         # logic to promote the animal to the auditory training stage:
-        # after 1000 trials in the hard visual training stage
-        total_trials = self.df[self.df.current_training_stage == "TwoAFC_visual_hard"].shape[0]
-        if total_trials >= 1000:
+        # after 1500 trials in the hard visual training stage
+        total_trials = self.df[
+            self.df.current_training_stage == "TwoAFC_visual_hard"
+        ].shape[0]
+        if total_trials >= 1500:
             self.settings.stimulus_modality = "auditory"
             self.settings.current_training_stage = "TwoAFC_auditory_easy"
             self.settings.trial_difficulties = ["easy"]
+            self.promotion_alarm()
 
         return None
 
+    def check_progression_from_tafc_auditory_hard(self) -> None:
+        """
+        This method checks if the animal is ready to get promoted from
+        TwoAFC auditory hard to TwoAFC auditory easy.
+        """
+        # logic to promote the animal to the auditory training stage:
+        # after 1500 trials in the hard auditory training stage
+        total_trials = self.df[
+            self.df.current_training_stage == "TwoAFC_auditory_hard"
+        ].shape[0]
+        if total_trials >= 1500:
+            self.settings.current_training_stage = "TwoAFC_multisensory_easy"
+            self.settings.trial_difficulties = ["easy"]
+            self.settings.stimulus_modality = "multisensory"
+            self.settings.stimulus_modality_block_size = 30
+            self.promotion_alarm()
+
+        return None
+
+    def promotion_alarm(self) -> None:
+        """
+        This method is called when the animal is ready to move to the next stage.
+        """
+        log.alarm(
+            subject=self.subject,
+            description=f"Promotion to {self.settings.current_training_stage}",
+            )
+        return None
 
 # for debugging purposes
 if __name__ == "__main__":

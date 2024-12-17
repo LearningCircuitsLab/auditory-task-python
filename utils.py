@@ -53,12 +53,31 @@ def get_right_bias(side_and_correct_array: np.ndarray) -> float:
         raise ValueError("Input array must have exactly two rows")
 
     first_pokes = side_and_correct_array[0, :]
-    correct_list = side_and_correct_array[1, :]    
+    correct_list = side_and_correct_array[1, :]
     wrong_sides = first_pokes[correct_list == "False"]
     if len(wrong_sides) == 0:
         return 0
     wrong_side_proportion = len(wrong_sides) / len(first_pokes)
-    wrong_right_proportion = wrong_side_proportion * np.nansum(wrong_sides == "right") / len(wrong_sides)
-    wrong_left_proportion = wrong_side_proportion * np.nansum(wrong_sides == "left") / len(wrong_sides)
+    wrong_right_proportion = (
+        wrong_side_proportion * np.nansum(wrong_sides == "right") / len(wrong_sides)
+    )
+    wrong_left_proportion = (
+        wrong_side_proportion * np.nansum(wrong_sides == "left") / len(wrong_sides)
+    )
 
     return wrong_right_proportion - wrong_left_proportion
+
+
+def get_block_size_uniform_pm30(mean: int) -> int:
+    """
+    This method returns a block size following a uniform distribution,
+    calculated as the mean of the distribution +/- 30% of the mean.
+
+    Args:
+        mean (int): Mean of the distribution
+    """
+    lower_bound = int(mean - 0.3 * mean)
+    upper_bound = int(mean + 0.3 * mean)
+    block_size = np.random.randint(lower_bound, upper_bound)
+
+    return block_size

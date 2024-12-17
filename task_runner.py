@@ -60,7 +60,7 @@ print("Thread time: ", t_loop - t_endinit)
 # run Virtual Mouse and Plotter
 while virtual_mouse.trial_number_counter < virtual_mouse.trial_limit:
     previous_trial = tafc_task.current_trial
-    virtual_mouse.read_trial_type(tafc_task.this_trial_type)
+    virtual_mouse.read_trial_type(tafc_task.this_trial_side)
     virtual_mouse.move_mouse()
 
     time_movements.append(time.time() - t_loop)
