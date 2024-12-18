@@ -61,7 +61,6 @@ class TrainingSettings(Training):
     - self.refractary_period
     - self.minimum_duration
     - self.maximum_duration
-    - self.maximum_number_of_trials
     In addition to these variables, all the necessary variables to modify the state
     of the tasks can be included.
 
@@ -86,7 +85,6 @@ class TrainingSettings(Training):
         self.settings.refractary_period = 14400
         self.settings.minimum_duration = 600
         self.settings.maximum_duration = 3600
-        self.settings.maximum_number_of_trials = 10000
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
