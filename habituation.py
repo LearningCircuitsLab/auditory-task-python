@@ -1,5 +1,3 @@
-import random
-
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 

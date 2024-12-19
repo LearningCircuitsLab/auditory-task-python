@@ -5,7 +5,7 @@ from village.classes.task import Event, Output, Task
 from village.manager import manager
 
 from sound_functions import cloud_of_tones
-from utils import get_block_size_uniform_pm30, get_right_bias
+from utils.utils import get_block_size_uniform_pm30, get_right_bias
 
 
 class TwoAFC(Task):
@@ -191,11 +191,11 @@ class TwoAFC(Task):
         self.bpod.register_value("difficulty", self.this_trial_difficulty)
 
         # register the actual stimuli used
-        self.bpod.register_value("visual_stimuli", self.trial_visual_stimuli)
-        self.bpod.register_value("auditory_stimuli", self.trial_auditory_stimuli)
+        self.bpod.register_value("visual_stimulus", self.trial_visual_stimulus)
+        self.bpod.register_value("auditory_stimulus", self.trial_auditory_stimulus)
         # reset them to None for the next trial
-        self.trial_visual_stimuli = None
-        self.trial_auditory_stimuli = None
+        self.trial_visual_stimulus = None
+        self.trial_auditory_stimulus = None
 
         # if multisensory, register the block number
         if self.settings.stimulus_modality == "multisensory":
@@ -303,7 +303,7 @@ class TwoAFC(Task):
                     ]["light_intensity_difference"]
                 )
                 # store as the trial stimuli
-                self.trial_visual_stimuli = (
+                self.trial_visual_stimulus = (
                     self.correct_brightness,
                     self.incorrect_brightness,
                 )
@@ -334,7 +334,7 @@ class TwoAFC(Task):
                         low_perc = 1 - dominant_proportion
                         high_perc = dominant_proportion
                 # create the sound
-                sound, self.trial_auditory_stimuli = cloud_of_tones(
+                sound, self.trial_auditory_stimulus = cloud_of_tones(
                     **self.settings.sound_properties,
                     high_perc=high_perc,
                     low_perc=low_perc,
