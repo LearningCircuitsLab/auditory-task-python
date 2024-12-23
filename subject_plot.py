@@ -1,7 +1,7 @@
 import pandas as pd
 from matplotlib.figure import Figure
 from village.classes.plot import SubjectPlot
-from utils.plots import trials_by_session_plot
+from utils.figure_maker import subject_progress_figure
 
 
 class Subject_Plot(SubjectPlot):
@@ -12,4 +12,5 @@ class Subject_Plot(SubjectPlot):
         """
         Overrides the default method to add a calendar
         """
-        return trials_by_session_plot(df)
+        # TODO: get the mouse name
+        return subject_progress_figure(df)

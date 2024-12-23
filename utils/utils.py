@@ -5,6 +5,7 @@
 # and to plot the data
 
 import numpy as np
+import pandas as pd
 
 
 def get_session_performance(df, session: int) -> float:
@@ -81,3 +82,18 @@ def get_block_size_uniform_pm30(mean: int) -> int:
     block_size = np.random.randint(lower_bound, upper_bound)
 
     return block_size
+
+
+def column_checker(df: pd.DataFrame, required_columns: set):
+    """
+    This method checks if the required columns are present in the dataframe.
+
+    Args:
+        df (pd.DataFrame): Dataframe to check
+        required_columns (set): Set of required columns
+    """
+    if not required_columns.issubset(df.columns):
+        raise ValueError(
+            "The dataframe must have the following columns: "
+            + ", ".join(required_columns)
+        )

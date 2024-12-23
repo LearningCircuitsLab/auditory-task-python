@@ -81,4 +81,4 @@ for i, session_counter in enumerate(np.arange(1, total_sessions + 1)):
     df = pd.concat([df, df_session])
 
 # save the dataframe
-df.to_csv(f"fake_data.csv", sep=";", index=False)
+df.to_csv(f"test-mouse_fake_data.csv", sep=";", index=False)
