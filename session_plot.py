@@ -1,7 +1,7 @@
 import pandas as pd
 from matplotlib.figure import Figure
 from village.classes.plot import SessionPlot
-from utils.figure_maker import session_summary_figure
+from lecilab_behavior_analysis.figure_maker import session_summary_figure
 
 
 class Session_Plot(SessionPlot):

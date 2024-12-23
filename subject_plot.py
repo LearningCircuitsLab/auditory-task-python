@@ -1,7 +1,7 @@
 import pandas as pd
 from matplotlib.figure import Figure
 from village.classes.plot import SubjectPlot
-from utils.figure_maker import subject_progress_figure
+from lecilab_behavior_analysis.figure_maker import subject_progress_figure
 
 
 class Subject_Plot(SubjectPlot):
