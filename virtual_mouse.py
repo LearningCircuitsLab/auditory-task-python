@@ -22,6 +22,7 @@ class VirtualMouse:
 
     def listen_for_trial_start(self):
         while True:
+            current_state = None
             # print("Virtual Mouse is reading the current state...")
             # get the current state name
             try:

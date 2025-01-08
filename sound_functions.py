@@ -1,4 +1,3 @@
-# %%
 import numpy as np
 
 
@@ -120,7 +119,7 @@ def generate_tones(
 
         # Save the picked frequencies
         picked_frequencies[0, i] = l_freq
-        picked_frequencies[1, 1] = h_freq
+        picked_frequencies[1, i] = h_freq
 
     return tones, picked_frequencies
 
@@ -196,33 +195,51 @@ def cloud_of_tones(
     # Clip the tail
     sound = sound[:sound_length]
 
-    # Add background white noise over the entire sound with 10% of the amplitude
-    noise = np.random.normal(0, amplitude * 0.1, sound_length)
+    # Add background white noise over the entire sound with 5% of the amplitude
+    noise = np.random.normal(0, amplitude * .05, sound_length)
     sound += noise
 
     return sound, frequencies
 
+if __name__ == "__main__":
+    sound_properties = {
+        "sample_rate": 48000,
+        "duration": 1,
+        "ramp_time": 0.005,
+        "amplitude": 0.02,
+        "high_freq": np.round(np.logspace(np.log10(11000), np.log10(20000), 16)).tolist(),
+        "low_freq": np.round(np.logspace(np.log10(5000), np.log10(8000), 16)).tolist(),
+        "subduration": 0.03,
+        "suboverlap": 0.01,
+    }
 
-sound_properties = {
-    "sample_rate": 44100,
-    "duration": 0.5,
-    "ramp_time": 0.005,
-    "amplitude": 0.1,
-    "high_freq": np.logspace(np.log(11000), np.log(20000), 16).tolist(),
-    "low_freq": np.logspace(np.log(5000), np.log(8000), 16).tolist(),
-    "subduration": 0.03,
-    "suboverlap": 0.01,
-}
 
-# Generate a cloud of tones
-sound, frequencies = cloud_of_tones(**sound_properties, high_perc=50, low_perc=50)
-# plot a spectrogram
-import matplotlib.pyplot as plt
-from scipy.signal import spectrogram
+    # Generate a cloud of tones
+    sound, frequencies = cloud_of_tones(**sound_properties, high_perc=95, low_perc=5)
 
-f, t, Sxx = spectrogram(sound, sound_properties["sample_rate"])
-plt.pcolormesh(t, f, 10 * np.log10(Sxx))
-plt.ylabel("Frequency [Hz]")
-plt.xlabel("Time [sec]")
-# y axis log
-plt.show()
+    from village.devices.sound_device import SoundDevice
+
+    sd = SoundDevice(samplerate=sound_properties["sample_rate"])
+    sd.load(sound)
+    sd.play()
+
+    # # print the percentage of high and low tones
+    print("High tones: ", np.sum(frequencies[1] > 0) / len(frequencies[1]) * 100)
+    # # print all frequencies different from 0
+    # h_t = frequencies[1][frequencies[1] > 0]
+    # print(h_t)
+    print("Low tones: ", np.sum(frequencies[0] > 0) / len(frequencies[0]) * 100)
+    # l_t = frequencies[0][frequencies[0] > 0]
+    # print(l_t)
+
+    # plot a spectrogram
+    import matplotlib.pyplot as plt
+    from scipy.signal import spectrogram
+
+    f, t, Sxx = spectrogram(sound, sound_properties["sample_rate"])
+    plt.pcolormesh(t, f, 10 * np.log10(Sxx))
+    plt.ylabel("Frequency [Hz]")
+    plt.xlabel("Time [sec]")
+    plt.ylim(0, 20000)  # limit the y axis to 20 kHz
+    # y axis log
+    plt.show()
