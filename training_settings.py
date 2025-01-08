@@ -213,7 +213,7 @@ class TrainingSettings(Training):
             self.settings.trial_difficulties = ["easy"]
             # trigger alarm
             self.promotion_alarm()
-            
+
         return None
 
     def check_progression_from_tafc_easy(self) -> None:
@@ -302,8 +302,9 @@ class TrainingSettings(Training):
         log.alarm(
             subject=self.subject,
             description=f"Promotion to {self.settings.current_training_stage}",
-            )
+        )
         return None
+
 
 # for debugging purposes
 if __name__ == "__main__":

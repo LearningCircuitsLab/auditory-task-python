@@ -1,11 +1,11 @@
 import random
 
 import numpy as np
+from utils.utils import get_block_size_uniform_pm30, get_right_bias
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
 from sound_functions import cloud_of_tones
-from utils import get_block_size_uniform_pm30, get_right_bias
 
 
 class TwoAFC(Task):
@@ -178,37 +178,37 @@ class TwoAFC(Task):
         # register the amount of water given to the mouse in this trial
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
-        self.register_value("water", self.settings.reward_amount_ml)
+        self.bpod.register_value("water", self.settings.reward_amount_ml)
 
         # we will also record the trial type, which will be used by training_settings.py
         # to make sure that the animal does not go from the second stage to the first one
-        self.register_value("correct_side", self.this_trial_side)
+        self.bpod.register_value("correct_side", self.this_trial_side)
 
         # register the modality of the stimulus
-        self.register_value("stimulus_modality", self.stimulus_modality)
+        self.bpod.register_value("stimulus_modality", self.stimulus_modality)
 
         # register the difficulty of the trial
-        self.register_value("difficulty", self.this_trial_difficulty)
+        self.bpod.register_value("difficulty", self.this_trial_difficulty)
 
         # register the actual stimuli used
-        self.register_value("visual_stimuli", self.trial_visual_stimuli)
-        self.register_value("auditory_stimuli", self.trial_auditory_stimuli)
+        self.bpod.register_value("visual_stimulus", self.trial_visual_stimulus)
+        self.bpod.register_value("auditory_stimulus", self.trial_auditory_stimulus)
         # reset them to None for the next trial
-        self.trial_visual_stimuli = None
-        self.trial_auditory_stimuli = None
+        self.trial_visual_stimulus = None
+        self.trial_auditory_stimulus = None
 
         # if multisensory, register the block number
         if self.settings.stimulus_modality == "multisensory":
-            self.register_value(
+            self.bpod.register_value(
                 "stimulus_modality_block_number", self.stim_mod_block_counter
             )
 
         # we will also record if the trial was correct or not
         was_trial_correct = self.get_performance_of_trial()
-        self.register_value("correct", was_trial_correct)
+        self.bpod.register_value("correct", was_trial_correct)
 
         # store the holding time
-        self.register_value("holding_time", self.time_to_hold_response)
+        self.bpod.register_value("holding_time", self.time_to_hold_response)
         # if trial was correct, increase the holding time with a limit
         if was_trial_correct:
             new_holding_time = (
@@ -303,7 +303,7 @@ class TwoAFC(Task):
                     ]["light_intensity_difference"]
                 )
                 # store as the trial stimuli
-                self.trial_visual_stimuli = (
+                self.trial_visual_stimulus = (
                     self.correct_brightness,
                     self.incorrect_brightness,
                 )
@@ -334,7 +334,7 @@ class TwoAFC(Task):
                         low_perc = 1 - dominant_proportion
                         high_perc = dominant_proportion
                 # create the sound
-                sound, self.trial_auditory_stimuli = cloud_of_tones(
+                sound, self.trial_auditory_stimulus = cloud_of_tones(
                     **self.settings.sound_properties,
                     high_perc=high_perc,
                     low_perc=low_perc,
@@ -372,34 +372,28 @@ class TwoAFC(Task):
 # with your task and bpod. This is useful for debugging and for
 # testing the task.
 
-if __name__ == "__main__":
-    import time
+# if __name__ == "__main__":
+#     import time
 
-    from training_settings import TrainingSettings
+#     from training_settings import TrainingSettings
 
-    task = TwoAFC()
-    training = TrainingSettings()
-    training.default_training_settings()
-    task.settings = training.settings
+#     task = TwoAFC()
+#     training = TrainingSettings()
+#     training.default_training_settings()
+#     task.settings = training.settings
 
-    task.run_in_thread()
-    time.sleep(.5)
-    # poke in the middle port
-    task.bpod.manual_override_input("Port2In")
-    task.bpod.manual_override_input("Port2Out")
-    # poke in the left port
-    task.bpod.manual_override_input("Port1In")
-    task.bpod.manual_override_input("Port1Out")
-    time.sleep(0.1)
-
-    
-    task.get_trial_data()
-    task.register_value("correct_side", "left")
-
-    
-    # poke in the right port
-    task.bpod.manual_override_input("Port3In")
-    task.bpod.manual_override_input("Port3Out")
-    # leave enough time for the bpod to finish
-    time.sleep(2)
-    time.sleep(2)
+#     task.run_in_thread()
+#     time.sleep(.5)
+#     # poke in the middle port
+#     task.bpod.manual_override_input("Port2In")
+#     task.bpod.manual_override_input("Port2Out")
+#     # poke in the left port
+#     task.bpod.manual_override_input("Port1In")
+#     task.bpod.manual_override_input("Port1Out")
+#     time.sleep(0.1)
+#     # poke in the right port
+#     task.bpod.manual_override_input("Port3In")
+#     task.bpod.manual_override_input("Port3Out")
+#     # leave enough time for the bpod to finish
+#     time.sleep(2)
+#     time.sleep(2)

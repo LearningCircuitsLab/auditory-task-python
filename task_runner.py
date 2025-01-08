@@ -6,7 +6,7 @@ import pandas as pd
 sys.path.append(".")
 from training_settings import TrainingSettings
 from trial_plotter import TrialPlotter
-from TwoAFC import TwoAFC
+from twoAFC import TwoAFC
 from virtual_mouse import VirtualMouse
 
 time_movements = []
