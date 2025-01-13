@@ -1,8 +1,8 @@
 import numpy as np
+from lecilab_behavior_analysis.utils import (get_session_number_of_trials,
+                                             get_session_performance)
 from village.classes.training import Training
 from village.log import log
-
-from utils import get_session_number_of_trials, get_session_performance
 
 """
 Two Alternative Force Choice Task for the Training Village.
