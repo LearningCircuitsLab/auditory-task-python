@@ -306,16 +306,16 @@ class TrainingSettings(Training):
         return None
 
 
-# for debugging purposes
-if __name__ == "__main__":
-    import random
+# # for debugging purposes
+# if __name__ == "__main__":
+#     import random
 
-    import pandas as pd
+#     import pandas as pd
 
-    training = TrainingSettings()
-    dfdir = "/home/pi/Downloads/B15.csv"
-    training.df = pd.read_csv(dfdir, sep=";")
-    training.update_training_settings()
+#     training = TrainingSettings()
+#     dfdir = "/home/pi/Downloads/B15.csv"
+#     training.df = pd.read_csv(dfdir, sep=";")
+#     training.update_training_settings()
 
     # # create a new column of randomly picked boolean values
     # training.df["correct"] = [random.choice([True, False]) for _ in range(training.df.shape[0])]

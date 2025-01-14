@@ -1,3 +1,5 @@
+import os
+import pickle
 import random
 
 import numpy as np
@@ -6,7 +8,7 @@ from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
-from sound_functions import cloud_of_tones
+from sound_functions import TEMP_SOUND_PATH, cloud_of_tones
 
 
 class TwoAFC(Task):
@@ -32,15 +34,6 @@ class TwoAFC(Task):
         print("TwoAFC starts in stage {0}".format(self.settings.current_training_stage))
 
         ## Initiate conditions that won't change during training
-        # Trial start state:
-        # Turn on light in the middle port
-        self.ready_to_initiate_output = [
-            (
-                Output.PWM2,
-                int(self.settings.middle_port_light_intensity * 255),
-            )
-        ]
-
         # Time the valve needs to open to deliver the reward amount
         # Make sure to calibrate the valve before using it, otherwise this function
         # will return the default value of 0.01 seconds
@@ -93,7 +86,15 @@ class TwoAFC(Task):
         else:
             self.start_of_trial_transition = "ready_to_initiate"
 
-        ## Define the conditions for the trial
+        # Trial start state:
+        # Turn on light in the middle port
+        self.ready_to_initiate_output = [
+            (
+                Output.PWM2,
+                int(self.settings.middle_port_light_intensity * 255),
+            )
+        ]
+
         # define the modality of the stimulus
         self.set_stimulus_modality()
 
@@ -340,8 +341,17 @@ class TwoAFC(Task):
                     high_perc=high_perc,
                     low_perc=low_perc,
                 )
-
-                # TODO: set the state to play the sound
+                # dump the sound to a temporary file
+                with open(TEMP_SOUND_PATH, "wb") as f:
+                    pickle.dump(sound, f)
+                # load the sound to the Bpod in the ready_to_initiate state
+                self.ready_to_initiate_output = self.ready_to_initiate_output.append(
+                    Output.SoftCode2
+                )
+                # delete the file containing the sound
+                os.remove(TEMP_SOUND_PATH)
+                # play the sound on the stimulus state
+                self.stimulus_state_output = [Output.SoftCode3]
 
     def get_performance_of_trial(self) -> bool:
         """
