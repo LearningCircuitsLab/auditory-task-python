@@ -8,7 +8,8 @@ from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
-from sound_functions import TEMP_SOUND_PATH, cloud_of_tones
+from sound_functions import cloud_of_tones
+from softcode_functions import TEMP_SOUND_PATH
 
 
 class TwoAFC(Task):
