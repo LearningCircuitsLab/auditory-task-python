@@ -60,11 +60,17 @@ class TwoAFC(Task):
             self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30()
             self.stim_mod_block_counter = 1
 
-        # if anti-bias is on, set the list of the last 15 trials
+        # if anti-bias is on, set the information of the last 15 trials
         if self.settings.anti_bias_on:
             # first
-            self.last_15_trials = np.empty((2, 15))
-            self.last_15_trials[:] = np.nan
+            self.last_15_trials = {
+                "side": np.full(15, "ignore"), # ignore the first 15 trials
+                "correct": np.full(15, False),
+            }
+        
+        # initialize the variables that will hold the stimuli for the trial
+        self.trial_visual_stimulus = None
+        self.trial_auditory_stimulus = None
 
     def configure_gui(self) -> None:
         # TODO: implement this method
@@ -182,6 +188,9 @@ class TwoAFC(Task):
         # and trigger alarms. You can override the alarms in the GUI
         self.register_value("water", self.settings.reward_amount_ml)
 
+        # register the training stage
+        self.register_value("current_training_stage", self.settings.current_training_stage)
+
         # we will also record the trial type, which will be used by training_settings.py
         # to make sure that the animal does not go from the second stage to the first one
         self.register_value("correct_side", self.this_trial_side)
@@ -222,9 +231,11 @@ class TwoAFC(Task):
 
         # update the list of the last 15 trials for the anti-bias
         if self.settings.anti_bias_on:
-            self.last_15_trials = np.roll(self.last_15_trials, 1)
-            self.last_15_trials[0, 0] = self.this_trial_side
-            self.last_15_trials[1, 0] = was_trial_correct
+            # shift each list one position to the right
+            for key in self.last_15_trials.keys():
+                self.last_15_trials[key] = np.roll(self.last_15_trials[key], 1)
+            self.last_15_trials["side"][0] = self.this_trial_side
+            self.last_15_trials["correct"][0] = was_trial_correct
 
     def close(self) -> None:
         print("Closing the task")
@@ -233,6 +244,7 @@ class TwoAFC(Task):
         # random side by default
         p = [0.5, 0.5]
         # change it if anti-bias is on
+        # first 15 trials are ignored by the function that calculates the bias
         if self.settings.anti_bias_on:
             # find the bias of the mouse
             right_bias = get_right_bias(self.last_15_trials)
@@ -295,7 +307,7 @@ class TwoAFC(Task):
         match self.stimulus_modality:
             case "visual":
                 # choose the incorrect brightness at random
-                l_b, h_b = self.settings.side_port_intensities_extremes
+                l_b, h_b = self.settings.side_port_wrong_intensities_extremes
                 self.incorrect_brightness = random.uniform(l_b, h_b)
                 # pick the correct brightness difference according to the difficulty
                 self.correct_brightness = self.incorrect_brightness * (

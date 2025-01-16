@@ -89,7 +89,7 @@ class TrainingSettings(Training):
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
 
-        # strenght of the light in the middle port (0-1)
+        # strength of the light in the middle port (0-1)
         self.settings.middle_port_light_intensity = 0.2
         # time the mouse needs to wait in the center port (in seconds)
         self.settings.holding_response_time_min = 0.03
@@ -119,22 +119,23 @@ class TrainingSettings(Training):
         # parameters associated with trial difficulties
         self.settings.trial_difficulty_parameters = {
             "easy": {
-                "light_intensity_difference": 0.5,
+                "light_intensity_difference": 5,
                 "frequency_proportion": 98,
             },
             "medium": {
-                "light_intensity_difference": 0.25,
+                "light_intensity_difference": 2.5,
                 "frequency_proportion": 82,
             },
             "hard": {
-                "light_intensity_difference": 0.1,
+                "light_intensity_difference": 1.25,
                 "frequency_proportion": 66,
             },
         }
         # basic parameters about the stimuli
-        # how many possible intensities can the side port have (0 - 0.6)*
-        # * 0.6 can vary depending on the multiplier factor (above 0.5 for easy)
-        self.settings.side_port_intensities_extremes = [0.05, 0.6]
+        # how many possible intensities can the incorrect side port have (eg. 0.15 - 0.33)*
+        # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
+        # as this multiplier will be the maximum intensity of the correct side port (max 1)
+        self.settings.side_port_wrong_intensities_extremes = [0.01, 0.2]
         self.settings.auditory_contingency = {"left": "low", "right": "high"}
         self.settings.sound_properties = {
             "sample_rate": 44100,
