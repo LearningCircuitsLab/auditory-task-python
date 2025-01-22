@@ -78,103 +78,51 @@ np.array(bitarray(mat).tolist()).reshape(matrix.shape)
 
 # %%
 import pandas as pd
+from sound_functions import generate_tone_matrix
 import numpy as np
 
-def generate_tone_matrix(frequencies, n_timebins, total_probability):
-    """
-    Generate a matrix of tones across time bins and frequencies.
-    Each frequency has an independent probability in each time bin.
-    
-    Parameters:
-    frequencies (list): List of frequencies to consider
-    n_timebins (int): Number of time bins
-    total_probability (float): Probability of at least one tone in each time bin (0-1)
-    
-    Returns:
-    pd.DataFrame: Matrix where rows are frequencies and columns are time bins
-    """
-    if not 0 <= total_probability <= 1:
-        raise ValueError("Total probability must be between 0 and 1")
-    
-    # Calculate individual probability for each frequency
-    # Using the formula: 1 - (1-p)^n = total_probability
-    # where p is individual probability and n is number of frequencies
-    # Solving for p: p = 1 - (1-total_probability)^(1/n)
-    n_frequencies = len(frequencies)
-    individual_probability = 1 - (1 - total_probability) ** (1 / n_frequencies)
-    
-    # Generate matrix using independent Bernoulli trials
-    matrix = np.random.random((len(frequencies), n_timebins)) < individual_probability
-    
-    # Convert to integer type (0s and 1s)
-    matrix = matrix.astype(int)
-    
-    # Create DataFrame with proper labels
-    df = pd.DataFrame(matrix, 
-                     index=frequencies,
-                     columns=[f'time_{t}' for t in range(n_timebins)])
-    
-    return df, individual_probability
+# %%
+freqs = np.linspace(5000, 20000, 6)
+time_bins = 25
+probs_to_test = np.linspace(.2, .98, 6)
+n_times = 1000
+list_of_dicts = []
 
-# Function to verify probabilities
-def verify_probabilities(matrix, individual_prob, total_prob):
-    """
-    Verify the probabilities in the generated matrix
-    """
-    # Calculate actual probability of at least one tone per time bin
-    actual_total_prob = np.mean(matrix.sum(axis=0) > 0)
-    
-    # Calculate actual individual probability per frequency
-    actual_individual_prob = np.mean(matrix)
-    
-    return {
-        'expected_total_prob': total_prob,
-        'actual_total_prob': actual_total_prob,
-        'expected_individual_prob': individual_prob,
-        'actual_individual_prob': actual_individual_prob
-    }
+for prob in probs_to_test:
+    for i in range(n_times):
+        matrix, _ = generate_tone_matrix(freqs, time_bins, prob)
+        # calculate the number of 1s
+        evidences = np.sum(matrix.values)
+        perc = evidences / matrix.size
+        list_of_dicts.append({"prob": prob, "evid": evidences, "perc": perc})
 
-# Example usage function
-def example_usage():
-    # Example parameters
-    freqs = [440, 880, 1760, 3520, 7040]  # A4 to A7
-    n_bins = 1000  # Large number for better probability verification
-    total_prob = 0.9
+df = pd.DataFrame(list_of_dicts)
     
-    # Generate matrix
-    result, ind_prob = generate_tone_matrix(freqs, n_bins, total_prob)
-    
-    # Verify probabilities
-    stats = verify_probabilities(result, ind_prob, total_prob)
+# %%
+import seaborn as sns
 
-    # add amplitude values to the matrix
-    result_amp = add_amplitude_to_sound_matrix(result, 60, 2)
-    
-    return result, stats, result_amp
-
-# Let's modulate now the amplitude of the tones,
-# and add that value to the entries of the matrix
-
-def add_amplitude_to_sound_matrix(matrix, amplitude_mean, amplitude_std):
-    """
-    Add amplitude values to a matrix of sounds.
-    
-    Parameters:
-    matrix (pd.DataFrame): Matrix of sounds
-    amplitude_mean (float): Mean amplitude value
-    amplitude_std (float): Standard deviation of amplitude values
-    
-    Returns:
-    pd.DataFrame: Matrix with amplitude values added
-    """
-    # Generate amplitudes
-    amplitudes = np.random.normal(amplitude_mean, amplitude_std, matrix.shape)
-    
-    # Substitute amplitudes into matrix where matrix entries are 1
-    matrix = matrix * amplitudes
-    
-    return matrix
+sns.histplot(data=df, x="perc", hue="prob", bins=50, kde=True)
 
 # %%
-r, s, r_amp = example_usage()
+def evidence_strength(x, y):
+    return (x - y) / (x + y)
+# generate another dataset that contains all 
+# the possible values of evidence strength
+probs_comb = [
+    (probs_to_test[0], probs_to_test[-1]),
+    (probs_to_test[1], probs_to_test[-2]),
+    (probs_to_test[2], probs_to_test[-3]),
+]
+dicts = []
+for prob1, prob2 in probs_comb:
+    probs_pair = str(prob1) + "-" + str(prob2)
+    for i in range(n_times):
+        x = df[df["prob"] == prob1].sample()["evid"].values[0]
+        y = df[df["prob"] == prob2].sample()["evid"].values[0]
+        dicts.append({"prob": probs_pair, "evid": evidence_strength(x, y)})
+
+evidence_strengths = pd.DataFrame(dicts)
+
+# %%
+sns.histplot(data=evidence_strengths, x="evid", hue="prob", bins=50, kde=True)
 # %%
