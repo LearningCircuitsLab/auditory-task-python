@@ -4,12 +4,12 @@ import random
 
 import numpy as np
 from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
-                                             get_right_bias)
+                                             get_right_bias, get_sound_stats)
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
-from sound_functions import cloud_of_tones
 from softcode_functions import TEMP_SOUND_PATH
+from sound_functions import cloud_of_tones
 
 
 class TwoAFC(Task):
@@ -73,9 +73,8 @@ class TwoAFC(Task):
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
 
-    def configure_gui(self) -> None:
-        # TODO: implement this method
-        pass
+        # initialize the sound properties
+        self.get_sound_from_settings()
 
     def create_trial(self):
         """
@@ -205,6 +204,10 @@ class TwoAFC(Task):
         # register the actual stimuli used
         self.register_value("visual_stimulus", self.trial_visual_stimulus)
         self.register_value("auditory_stimulus", self.trial_auditory_stimulus)
+        # register the actual auditory statistics
+        if self.trial_auditory_stimulus is not None:
+            sound_stats = get_sound_stats(self.trial_auditory_stimulus)
+            self.register_value("auditory_real_statistics", sound_stats)
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
@@ -348,12 +351,29 @@ class TwoAFC(Task):
                     case "high":
                         low_perc = 1 - dominant_proportion
                         high_perc = dominant_proportion
-                # create the sound
-                sound, self.trial_auditory_stimulus = cloud_of_tones(
-                    **self.settings.sound_properties,
-                    high_perc=high_perc,
-                    low_perc=low_perc,
+                # randomize the amplitude of the high and low frequencies
+                high_amplitude_mean = random.uniform(
+                    self.settings.bottom_amplitude_mean,
+                    self.settings.top_amplitude_mean,
                 )
+                low_amplitude_mean = random.uniform(
+                    self.settings.bottom_amplitude_mean,
+                    self.settings.top_amplitude_mean,
+                )
+                # create the sound
+                sound, high_mat, low_mat = cloud_of_tones(
+                    **self.sound_properties,
+                    high_prob=high_perc,
+                    low_prob=low_perc,
+                    high_amplitude_mean=high_amplitude_mean,
+                    low_amplitude_mean=low_amplitude_mean,
+                )
+                # store the trial stimuli
+                self.trial_auditory_stimulus = {
+                    "high_tones": high_mat.to_dict(),
+                    "low_tones": low_mat.to_dict(),
+                }
+
                 # dump the sound to a temporary file
                 with open(TEMP_SOUND_PATH, "wb") as f:
                     pickle.dump(sound, f)
@@ -366,6 +386,26 @@ class TwoAFC(Task):
                 # play the sound on the stimulus state
                 self.stimulus_state_output = [Output.SoftCode3]
 
+    
+    def get_sound_from_settings(self) -> None:
+        list_of_frequencies = np.logspace(
+            np.log10(self.settings.lowest_frequency),
+            np.log10(self.settings.highest_frequency),
+            self.settings.number_of_frequencies * 3,
+        ).round(0).tolist()
+        low_freq_list = list_of_frequencies[: self.settings.number_of_frequencies]
+        high_freq_list = list_of_frequencies[-self.settings.number_of_frequencies :]
+        self.sound_properties = {
+            "sample_rate": self.settings.sample_rate,
+            "duration": self.settings.sound_duration,
+            "high_freq_list": high_freq_list,
+            "low_freq_list": low_freq_list,
+            "amplitude_std": self.settings.amplitude_std,
+            "subduration": self.settings.tone_duration,
+            "suboverlap": self.settings.tone_overlap,
+            "ramp_time": self.settings.tone_ramp_time,
+        }
+    
     def get_performance_of_trial(self) -> bool:
         """
         This method calculates the performance of a trial, comparing the trial type

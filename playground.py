@@ -1,33 +1,35 @@
 # %%
 import numpy as np
+
 from sound_functions import cloud_of_tones
+
 # %%
 
-
+# Define frequencies
+lowest_freq = 5000
+highest_freq = 20000
+freqs_log_spaced = np.round(np.logspace(np.log10(lowest_freq), np.log10(highest_freq), 18)).tolist()
+low_freq_list = freqs_log_spaced[:6]
+high_freq_list = freqs_log_spaced[-6:]
+# Define sound properties
 sound_properties = {
     "sample_rate": 48000,
     "duration": 1,
     "ramp_time": 0.005,
-    "amplitude": 0.02,
-    "high_freq": np.round(np.logspace(np.log10(11000), np.log10(20000), 16)).tolist(),
-    "low_freq": np.round(np.logspace(np.log10(5000), np.log10(8000), 16)).tolist(),
+    "high_amplitude_mean": 70,
+    "low_amplitude_mean": 60,
+    "amplitude_std": 2,
+    "high_freq_list": high_freq_list,
+    "low_freq_list": low_freq_list,
     "subduration": 0.03,
     "suboverlap": 0.01,
 }
 
-
 # Generate a cloud of tones
-sound, frequencies = cloud_of_tones(**sound_properties, high_perc=95, low_perc=5)
+cot, _, _ = cloud_of_tones(**sound_properties, high_prob=.7, low_prob=.3)
+print(cot.shape)
 
-# # print the percentage of high and low tones
-print("High tones: ", np.sum(frequencies[1] > 0) / len(frequencies[1]) * 100)
-# # print all frequencies different from 0
-# h_t = frequencies[1][frequencies[1] > 0]
-# print(h_t)
-print("Low tones: ", np.sum(frequencies[0] > 0) / len(frequencies[0]) * 100)
-# l_t = frequencies[0][frequencies[0] > 0]
-# print(l_t)
-
+# %%
 # plot a spectrogram
 import matplotlib.pyplot as plt
 from scipy.signal import spectrogram

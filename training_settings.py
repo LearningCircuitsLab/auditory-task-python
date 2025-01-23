@@ -138,16 +138,18 @@ class TrainingSettings(Training):
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.2]
         # TODO: how to deal with dictionaries in the settings?
         self.settings.auditory_contingency = {"left": "low", "right": "high"}
-        self.settings.sound_properties = {
-            "sample_rate": 44100,
-            "duration": 0.5,
-            "ramp_time": 0.005,
-            "amplitude": 0.1,
-            "high_freq": np.logspace(np.log(11000), np.log(20000), 16).tolist(),
-            "low_freq": np.logspace(np.log(5000), np.log(8000), 16).tolist(),
-            "subduration": 0.03,
-            "suboverlap": 0.01,
-        }
+        # parameters for the auditory stimuli
+        self.settings.sample_rate = 44100
+        self.settings.sound_duration = 0.5
+        self.settings.low_frequency = 5000
+        self.settings.high_frequency = 20000
+        self.settings.number_of_frequencies = 6
+        self.settings.tone_duration = 0.03
+        self.settings.tone_overlap = 0.01
+        self.settings.tone_ramp_time = 0.005
+        self.settings.top_amplitude_mean = 70
+        self.settings.bottom_amplitude_mean = 60
+        self.settings.amplitude_std = 3
 
     def update_training_settings(self) -> None:
         """

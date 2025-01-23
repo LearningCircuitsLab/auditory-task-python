@@ -237,7 +237,6 @@ def generate_tone_matrix(frequencies, n_timebins, total_probability):
     
     Returns:
     pd.DataFrame: Matrix where rows are frequencies and columns are time bins
-    float: Individual probability of each frequency in each time bin
     """
     if not 0 <= total_probability <= 1:
         raise ValueError("Total probability must be between 0 and 1")
