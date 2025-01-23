@@ -136,6 +136,7 @@ class TrainingSettings(Training):
         # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.2]
+        # TODO: how to deal with dictionaries in the settings?
         self.settings.auditory_contingency = {"left": "low", "right": "high"}
         self.settings.sound_properties = {
             "sample_rate": 44100,
