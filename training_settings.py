@@ -81,7 +81,6 @@ class TrainingSettings(Training):
         # that runs on Traning Village
         self.settings.next_task = "Habituation"
         self.settings.current_training_stage = "Habituation"
-        # TODO: in the GUI, fix the values that stages can take
         self.settings.refractary_period = 14400
         self.settings.minimum_duration = 600
         self.settings.maximum_duration = 3600
@@ -117,18 +116,24 @@ class TrainingSettings(Training):
         # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
         self.settings.trial_sides = ["left", "right"]
         # parameters associated with trial difficulties
+        self.settings.easy_light_intensity_difference = 5
+        self.settings.easy_frequency_proportion = 98
+        self.settings.medium_light_intensity_difference = 2.5
+        self.settings.medium_frequency_proportion = 82
+        self.settings.hard_light_intensity_difference = 1.25
+        self.settings.hard_frequency_proportion = 66
         self.settings.trial_difficulty_parameters = {
             "easy": {
-                "light_intensity_difference": 5,
-                "frequency_proportion": 98,
+                "light_intensity_difference": self.settings.easy_light_intensity_difference,
+                "frequency_proportion": self.settings.easy_frequency_proportion,
             },
             "medium": {
-                "light_intensity_difference": 2.5,
-                "frequency_proportion": 82,
+                "light_intensity_difference": self.settings.medium_light_intensity_difference,
+                "frequency_proportion": self.settings.medium_frequency_proportion,
             },
             "hard": {
-                "light_intensity_difference": 1.25,
-                "frequency_proportion": 66,
+                "light_intensity_difference": self.settings.hard_light_intensity_difference,
+                "frequency_proportion": self.settings.hard_frequency_proportion,
             },
         }
         # basic parameters about the stimuli
@@ -141,8 +146,8 @@ class TrainingSettings(Training):
         # parameters for the auditory stimuli
         self.settings.sample_rate = 44100
         self.settings.sound_duration = 0.5
-        self.settings.low_frequency = 5000
-        self.settings.high_frequency = 20000
+        self.settings.lowest_frequency = 5000
+        self.settings.highest_frequency = 20000
         self.settings.number_of_frequencies = 6
         self.settings.tone_duration = 0.03
         self.settings.tone_overlap = 0.01
@@ -195,6 +200,9 @@ class TrainingSettings(Training):
                 self.check_progression_from_tafc_easy()
             case "TwoAFC_auditory_hard":
                 self.check_progression_from_tafc_auditory_hard()
+            case "Manual_training":
+                # do nothing
+                pass
             case _:
                 # raise an error
                 log.error(
@@ -202,6 +210,57 @@ class TrainingSettings(Training):
                 )
 
         return None
+    
+    def define_gui_tabs(self) -> None:
+        """
+        This method is used to define the tabs that will be shown in the GUI.
+        """
+        self.gui_tabs = {
+            "Visual": [
+                "side_port_wrong_intensities_extremes",
+                "easy_light_intensity_difference",
+                "medium_light_intensity_difference",
+                "hard_light_intensity_difference",
+            ],
+            "Sound": [
+                "auditory_contingency",
+                "easy_frequency_proportion",
+                "medium_frequency_proportion",
+                "hard_frequency_proportion",
+                "sample_rate",
+                "sound_duration",
+                "lowest_frequency",
+                "highest_frequency",
+                "number_of_frequencies",
+                "tone_duration",
+                "tone_overlap",
+                "tone_ramp_time",
+                "top_amplitude_mean",
+                "bottom_amplitude_mean",
+                "amplitude_std",
+            ],
+            "Hide": [
+                "holding_response_time",
+                "trial_difficulty_parameters",
+            ],
+
+        }
+
+        self.gui_tabs_restricted = {
+            "current_training_stage": [
+                "Habituation",
+                "TwoAFC_visual_easy",
+                "TwoAFC_visual_hard",
+                "TwoAFC_auditory_easy",
+                "TwoAFC_auditory_hard",
+                "TwoAFC_multisensory_easy",
+                "TwoAFC_multisensory_hard",
+                "Manual_training",
+            ],
+            "stimulus_modality": ["visual", "auditory", "multisensory"],
+
+        }
+
 
     def check_progression_from_habituation(self) -> None:
         """
