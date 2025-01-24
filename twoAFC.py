@@ -80,12 +80,12 @@ class TwoAFC(Task):
                 case _:
                     raise ValueError("Frequency associated with left choice not recognized")
 
-        # if anti-bias is on, set the information of the last 15 trials
+        # if anti-bias is on, set the information of the last X trials
         if self.settings.anti_bias_on:
             # first
-            self.last_15_trials = {
-                "side": np.full(15, "ignore"), # ignore the first 15 trials
-                "correct": np.full(15, False),
+            self.last_trials_vector = {
+                "side": np.full(int(self.settings.anti_bias_vector_size), "ignore"), # ignore the first trials
+                "correct": np.full(int(self.settings.anti_bias_vector_size), False),
             }
         
         # initialize the variables that will hold the stimuli for the trial
@@ -273,10 +273,10 @@ class TwoAFC(Task):
         # update the list of the last 15 trials for the anti-bias
         if self.settings.anti_bias_on:
             # shift each list one position to the right
-            for key in self.last_15_trials.keys():
-                self.last_15_trials[key] = np.roll(self.last_15_trials[key], 1)
-            self.last_15_trials["side"][0] = self.this_trial_side
-            self.last_15_trials["correct"][0] = was_trial_correct
+            for key in self.last_trials_vector.keys():
+                self.last_trials_vector[key] = np.roll(self.last_trials_vector[key], 1)
+            self.last_trials_vector["side"][0] = self.this_trial_side
+            self.last_trials_vector["correct"][0] = was_trial_correct
 
     def close(self) -> None:
         print("Closing the task")
@@ -288,7 +288,7 @@ class TwoAFC(Task):
         # first 15 trials are ignored by the function that calculates the bias
         if self.settings.anti_bias_on:
             # find the bias of the mouse
-            right_bias = get_right_bias(self.last_15_trials)
+            right_bias = get_right_bias(self.last_trials_vector)
             left_probability = (right_bias + 1) / 2
             right_probability = 1 - left_probability
             p = [left_probability, right_probability]
@@ -296,7 +296,7 @@ class TwoAFC(Task):
         self.this_trial_side = np.random.choice(self.settings.trial_sides, p=p)
 
         # random difficulty by default
-        self.this_trial_difficulty = random.choice(self.trial_difficulty_parameters.keys())
+        self.this_trial_difficulty = random.choice(list(self.trial_difficulty_parameters.keys()))
 
     def set_stimulus_modality(self) -> None:
         match self.settings.stimulus_modality:
@@ -428,10 +428,10 @@ class TwoAFC(Task):
         list_of_frequencies = np.logspace(
             np.log10(self.settings.lowest_frequency),
             np.log10(self.settings.highest_frequency),
-            self.settings.number_of_frequencies * 3,
+            int(self.settings.number_of_frequencies * 3),
         ).round(0).tolist()
-        low_freq_list = list_of_frequencies[: self.settings.number_of_frequencies]
-        high_freq_list = list_of_frequencies[-self.settings.number_of_frequencies :]
+        low_freq_list = list_of_frequencies[: int(self.settings.number_of_frequencies)]
+        high_freq_list = list_of_frequencies[-int(self.settings.number_of_frequencies) :]
         self.sound_properties = {
             "sample_rate": self.settings.sample_rate,
             "duration": self.settings.sound_duration,

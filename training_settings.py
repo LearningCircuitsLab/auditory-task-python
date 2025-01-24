@@ -112,6 +112,7 @@ class TrainingSettings(Training):
         self.settings.hard_trials_on = False
         # turn on or off the anti-bias
         self.settings.anti_bias_on = True
+        self.settings.anti_bias_vector_size = 10
 
         ## Things that should not be messed up with once they are settled on
         # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
@@ -154,6 +155,10 @@ class TrainingSettings(Training):
         # self.settings contains the settings from the last session
 
         # General progressions and adjustments of parameters
+
+        # if the animal is running on manual mode and the training stage is manual, keep the same settings
+        if self.df.run_mode.iloc[-1] == "Manual" and self.settings.current_training_stage == "Manual_training":
+            return None
 
         # decrease the reward amount for each session with more than 50 trials
         match np.sum(self.df.session.value_counts() > 50):
