@@ -87,7 +87,9 @@ class TrainingSettings(Training):
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
-
+        # stimulus modality
+        self.settings.stimulus_modality = "visual"
+        self.settings.stimulus_modality_block_size = 30
         # strength of the light in the middle port (0-1)
         self.settings.middle_port_light_intensity = 0.2
         # time the mouse needs to wait in the center port (in seconds)
@@ -97,20 +99,19 @@ class TrainingSettings(Training):
         self.settings.holding_response_time = self.settings.holding_response_time_min
         # time the mouse has to respond (in seconds)
         self.settings.timer_for_response = 5
-        # inter trial interval (in seconds)
-        self.settings.iti = 1
         # reward amount in ml to start with (in ml)
         self.settings.reward_amount_ml = 5
+        # inter trial interval (in seconds)
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
         self.settings.punishment_time = 1  # in seconds
-        # stimulus modality
-        self.settings.stimulus_modality = "visual"
-        self.settings.stimulus_modality_block_size = 30
-        # trial difficulty (e.g. ["easy", "medium", "hard"])
-        self.settings.trial_difficulties = ["easy"]
+        self.settings.iti = 1
+        # trial difficulties
+        self.settings.easy_trials_on = True
+        self.settings.medium_trials_on = False
+        self.settings.hard_trials_on = False
         # turn on or off the anti-bias
-        self.settings.anti_bias_on = False
+        self.settings.anti_bias_on = True
 
         ## Things that should not be messed up with once they are settled on
         # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
@@ -122,27 +123,13 @@ class TrainingSettings(Training):
         self.settings.medium_frequency_proportion = 82
         self.settings.hard_light_intensity_difference = 1.25
         self.settings.hard_frequency_proportion = 66
-        self.settings.trial_difficulty_parameters = {
-            "easy": {
-                "light_intensity_difference": self.settings.easy_light_intensity_difference,
-                "frequency_proportion": self.settings.easy_frequency_proportion,
-            },
-            "medium": {
-                "light_intensity_difference": self.settings.medium_light_intensity_difference,
-                "frequency_proportion": self.settings.medium_frequency_proportion,
-            },
-            "hard": {
-                "light_intensity_difference": self.settings.hard_light_intensity_difference,
-                "frequency_proportion": self.settings.hard_frequency_proportion,
-            },
-        }
         # basic parameters about the stimuli
         # how many possible intensities can the incorrect side port have (eg. 0.15 - 0.33)*
         # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.2]
-        # TODO: how to deal with dictionaries in the settings?
-        self.settings.auditory_contingency = {"left": "low", "right": "high"}
+        # contingency
+        self.settings.frequency_associated_with_left_choice = "low"
         # parameters for the auditory stimuli
         self.settings.sample_rate = 44100
         self.settings.sound_duration = 0.5
@@ -216,6 +203,11 @@ class TrainingSettings(Training):
         This method is used to define the tabs that will be shown in the GUI.
         """
         self.gui_tabs = {
+            "Difficulty": [
+                "easy_trials_on",
+                "medium_trials_on",
+                "hard_trials_on",
+            ],
             "Visual": [
                 "side_port_wrong_intensities_extremes",
                 "easy_light_intensity_difference",
@@ -223,7 +215,7 @@ class TrainingSettings(Training):
                 "hard_light_intensity_difference",
             ],
             "Sound": [
-                "auditory_contingency",
+                "frequency_associated_with_left_choice",
                 "easy_frequency_proportion",
                 "medium_frequency_proportion",
                 "hard_frequency_proportion",
@@ -240,10 +232,8 @@ class TrainingSettings(Training):
                 "amplitude_std",
             ],
             "Hide": [
-                "holding_response_time",
-                "trial_difficulty_parameters",
+                "trial_sides",
             ],
-
         }
 
         self.gui_tabs_restricted = {
@@ -258,7 +248,12 @@ class TrainingSettings(Training):
                 "Manual_training",
             ],
             "stimulus_modality": ["visual", "auditory", "multisensory"],
-
+            "punishment": [True, False],
+            "anti_bias_on": [True, False],
+            "easy_trials_on": [True, False],
+            "medium_trials_on": [True, False],
+            "hard_trials_on": [True, False],
+            "frequency_associated_with_left_choice": ["low", "high"],
         }
 
 

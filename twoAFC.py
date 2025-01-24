@@ -26,6 +26,16 @@ class TwoAFC(Task):
         Implement opto. #TODO
         
         The progression through the stages is defined in the training_settings.py file.
+
+           (\(\  
+          ( -.-)
+        o_(")(")        ʕ·ᴥ·ʔ
+
+             @..@
+            (----)
+           ( >__< )
+           ^^    ^^
+
         """
 
         # variables are defined in training_settings.py
@@ -60,6 +70,15 @@ class TwoAFC(Task):
             self.stimulus_modality = random.choice(["visual", "auditory"])
             self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30()
             self.stim_mod_block_counter = 1
+        # if doing auditory or multisensory, set the contingency
+        if self.settings.stimulus_modality in ["auditory", "multisensory"]:
+            match self.settings.frequency_associated_with_left_choice:
+                case "low":
+                    self.auditory_contingency = {"left": "low", "right": "high"}
+                case "high":
+                    self.auditory_contingency = {"left": "high", "right": "low"}
+                case _:
+                    raise ValueError("Frequency associated with left choice not recognized")
 
         # if anti-bias is on, set the information of the last 15 trials
         if self.settings.anti_bias_on:
@@ -75,6 +94,24 @@ class TwoAFC(Task):
 
         # initialize the sound properties
         self.get_sound_from_settings()
+        
+        # create the dictionary for the difficulty of trials and the stimulus properties
+        self.trial_difficulty_parameters = {}
+        if self.settings.easy_trials_on:
+            self.trial_difficulty_parameters["easy"] = {
+                    "light_intensity_difference": self.settings.easy_light_intensity_difference,
+                    "frequency_proportion": self.settings.easy_frequency_proportion,
+                }
+        if self.settings.medium_trials_on:
+            self.trial_difficulty_parameters["medium"] = {
+                    "light_intensity_difference": self.settings.medium_light_intensity_difference,
+                    "frequency_proportion": self.settings.medium_frequency_proportion,
+                }
+        if self.settings.hard_trials_on:
+            self.trial_difficulty_parameters["hard"] = {
+                    "light_intensity_difference": self.settings.hard_light_intensity_difference,
+                    "frequency_proportion": self.settings.hard_frequency_proportion,
+                }
 
     def create_trial(self):
         """
@@ -259,7 +296,7 @@ class TwoAFC(Task):
         self.this_trial_side = np.random.choice(self.settings.trial_sides, p=p)
 
         # random difficulty by default
-        self.this_trial_difficulty = random.choice(self.settings.trial_difficulties)
+        self.this_trial_difficulty = random.choice(self.trial_difficulty_parameters.keys())
 
     def set_stimulus_modality(self) -> None:
         match self.settings.stimulus_modality:
@@ -316,7 +353,7 @@ class TwoAFC(Task):
                 # pick the correct brightness difference according to the difficulty
                 self.correct_brightness = self.incorrect_brightness * (
                     1
-                    + self.settings.trial_difficulty_parameters[
+                    + self.trial_difficulty_parameters[
                         self.this_trial_difficulty
                     ]["light_intensity_difference"]
                 )
@@ -338,9 +375,9 @@ class TwoAFC(Task):
                 ]
             case "auditory":
                 # dominant frequency "low" or "high"
-                dominant_freq = self.settings.auditory_contingency[self.this_trial_side]
+                dominant_freq = self.auditory_contingency[self.this_trial_side]
                 # get the proportion of tones for the dominant frequency
-                dominant_proportion = self.settings.trial_difficulty_parameters[
+                dominant_proportion = self.trial_difficulty_parameters[
                     self.this_trial_difficulty
                 ]["frequency_proportion"]
                 # determine the proportion of high and low frequencies
