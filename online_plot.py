@@ -1,27 +1,39 @@
-import ast
-
-import numpy as np
 import pandas as pd
-from lecilab_behavior_analysis.plots import side_correct_performance_plot
+from lecilab_behavior_analysis.plots import (correct_left_and_right_plot,
+                                             side_correct_performance_plot)
+from matplotlib import gridspec
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib.figure import Figure
 from village.classes.plot import OnlinePlotFigureManager
 
 
 class Online_Plot(OnlinePlotFigureManager):
     def __init__(self) -> None:
         super().__init__()
-        self.ax1 = self.fig.add_subplot(1, 2, 1)
-        self.ax2 = self.fig.add_subplot(1, 2, 2)
+        self.fig = plt.figure(figsize=(20, 5))
+        rows_gs = gridspec.GridSpec(2, 1, height_ratios=[1, 2])
+        # Create separate inner grids for each row with different width ratios
+        top_gs = gridspec.GridSpecFromSubplotSpec(
+            1, 1, subplot_spec=rows_gs[0]
+        )
+        bot_gs = gridspec.GridSpecFromSubplotSpec(
+            1, 3, subplot_spec=rows_gs[1], width_ratios=[1, 1, 1]
+        )
+        self.ax1 = self.fig.add_subplot(top_gs[0, 0])
+        self.ax2 = self.fig.add_subplot(bot_gs[0, 0])
 
     def update_plot(self, df: pd.DataFrame) -> None:
+        # try:
+        #     self.make_timing_plot(df, self.ax1)
+        # except Exception:
+        #     self.make_error_plot(self.ax1)
         try:
-            self.make_timing_plot(df, self.ax1)
-        except Exception:
+            self.make_trial_side_and_correct_plot(df, self.ax1)
+        except Exception as e:
+            print(e)
             self.make_error_plot(self.ax1)
         try:
-            self.make_trial_side_and_correct_plot(df, self.ax2)
+            self.ax2.clear()
+            self.ax2 = correct_left_and_right_plot(df, self.ax2, 50)
         except Exception as e:
             print(e)
             self.make_error_plot(self.ax2)

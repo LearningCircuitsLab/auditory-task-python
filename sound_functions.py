@@ -370,17 +370,19 @@ def generate_frequency_sound(row, sample_rate, subduration, suboverlap, ramp_tim
     # Generate tones and concatenate them
     for i in range(len(row)):
         if row.iloc[i] > 0:
+            # TODO: convert decibels to amplitude
+            amplitude = 0.05
             sound[idx[i] : idx[i] + tone_length] += tone_generator(
                 total_time_steps[idx[i] : idx[i] + tone_length],
                 ramp_time,
-                row.iloc[i],
+                amplitude,
                 row.name,
             )
     
     return sound
 
 if __name__ == "__main__":
-    # Define frequencies
+    # # Define frequencies
     lowest_freq = 5000
     highest_freq = 20000
     freqs_log_spaced = np.round(np.logspace(np.log10(lowest_freq), np.log10(highest_freq), 18)).tolist()
@@ -400,10 +402,26 @@ if __name__ == "__main__":
         "suboverlap": 0.01,
     }
 
-    # Generate a cloud of tones
-    cot, _, _ = cloud_of_tones(**sound_properties, high_prob=.7, low_prob=.3)
-    print(cot.shape)
+    # # Generate a cloud of tones
+    # cot, _, _ = cloud_of_tones(**sound_properties, high_prob=.7, low_prob=.3)
+    # print(cot.shape)
 
+    # # play it
+    import time
+
+    from village.devices.sound_device import SoundDevice
+
+    sd = SoundDevice(sound_properties["sample_rate"])
+
+    import pickle
+
+    from softcode_functions import TEMP_SOUND_PATH
+
+    cot = pickle.load(open(TEMP_SOUND_PATH, "rb"))
+
+    sd.load(cot)
+    sd.play()
+    # time.sleep(2)
 
     # # # print the percentage of high and low tones
     # print("High tones: ", np.sum(frequencies[1] > 0) / len(frequencies[1]) * 100)
@@ -415,8 +433,11 @@ if __name__ == "__main__":
     # # print(l_t)
 
     # plot a spectrogram
+
     import matplotlib.pyplot as plt
     from scipy.signal import spectrogram
+
+
 
     f, t, Sxx = spectrogram(cot, sound_properties["sample_rate"])
     plt.pcolormesh(t, f, 10 * np.log10(Sxx))

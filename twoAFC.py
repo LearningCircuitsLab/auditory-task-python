@@ -245,6 +245,8 @@ class TwoAFC(Task):
         if self.trial_auditory_stimulus is not None:
             sound_stats = get_sound_stats(self.trial_auditory_stimulus)
             self.register_value("auditory_real_statistics", sound_stats)
+            # delete the file containing the sound
+            os.remove(TEMP_SOUND_PATH)
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
@@ -352,8 +354,7 @@ class TwoAFC(Task):
                 self.incorrect_brightness = random.uniform(l_b, h_b)
                 # pick the correct brightness difference according to the difficulty
                 self.correct_brightness = self.incorrect_brightness * (
-                    1
-                    + self.trial_difficulty_parameters[
+                    self.trial_difficulty_parameters[
                         self.this_trial_difficulty
                     ]["light_intensity_difference"]
                 )
@@ -379,7 +380,7 @@ class TwoAFC(Task):
                 # get the proportion of tones for the dominant frequency
                 dominant_proportion = self.trial_difficulty_parameters[
                     self.this_trial_difficulty
-                ]["frequency_proportion"]
+                ]["frequency_proportion"] * 0.01
                 # determine the proportion of high and low frequencies
                 match dominant_freq:
                     case "low":
@@ -415,11 +416,7 @@ class TwoAFC(Task):
                 with open(TEMP_SOUND_PATH, "wb") as f:
                     pickle.dump(sound, f)
                 # load the sound to the Bpod in the ready_to_initiate state
-                self.ready_to_initiate_output = self.ready_to_initiate_output.append(
-                    Output.SoftCode2
-                )
-                # delete the file containing the sound
-                os.remove(TEMP_SOUND_PATH)
+                self.ready_to_initiate_output.append(Output.SoftCode2)
                 # play the sound on the stimulus state
                 self.stimulus_state_output = [Output.SoftCode3]
 

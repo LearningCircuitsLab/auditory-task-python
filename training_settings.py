@@ -3,6 +3,7 @@ from lecilab_behavior_analysis.utils import (get_session_number_of_trials,
                                              get_session_performance)
 from village.classes.training import Training
 from village.log import log
+from village.settings import settings
 
 """
 Two Alternative Force Choice Task for the Training Village.
@@ -132,7 +133,7 @@ class TrainingSettings(Training):
         # contingency
         self.settings.frequency_associated_with_left_choice = "low"
         # parameters for the auditory stimuli
-        self.settings.sample_rate = 44100
+        self.settings.sample_rate = settings.get("SAMPLERATE")
         self.settings.sound_duration = 0.5
         self.settings.lowest_frequency = 5000
         self.settings.highest_frequency = 20000
@@ -224,7 +225,6 @@ class TrainingSettings(Training):
                 "easy_frequency_proportion",
                 "medium_frequency_proportion",
                 "hard_frequency_proportion",
-                "sample_rate",
                 "sound_duration",
                 "lowest_frequency",
                 "highest_frequency",
@@ -238,6 +238,7 @@ class TrainingSettings(Training):
             ],
             "Hide": [
                 "trial_sides",
+                "sample_rate",
             ],
         }
 
