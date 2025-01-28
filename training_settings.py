@@ -131,8 +131,9 @@ class TrainingSettings(Training):
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.2]
         # contingency
-        self.settings.frequency_associated_with_left_choice = "low"
+        self.settings.frequency_associated_with_left_choice = "high"
         # parameters for the auditory stimuli
+        # TODO: make an example for how to access this value
         self.settings.sample_rate = settings.get("SAMPLERATE")
         self.settings.sound_duration = 0.5
         self.settings.lowest_frequency = 5000

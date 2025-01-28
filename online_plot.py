@@ -27,13 +27,14 @@ class Online_Plot(OnlinePlotFigureManager):
         # except Exception:
         #     self.make_error_plot(self.ax1)
         try:
-            self.make_trial_side_and_correct_plot(df, self.ax1)
+            self.ax1.clear()
+            self.ax1 = side_correct_performance_plot(df, self.ax1, 50)
         except Exception as e:
             print(e)
             self.make_error_plot(self.ax1)
         try:
             self.ax2.clear()
-            self.ax2 = correct_left_and_right_plot(df, self.ax2, 50)
+            self.ax2 = correct_left_and_right_plot(df, self.ax2)
         except Exception as e:
             print(e)
             self.make_error_plot(self.ax2)
@@ -44,9 +45,6 @@ class Online_Plot(OnlinePlotFigureManager):
     def make_timing_plot(self, df: pd.DataFrame, ax: plt.Axes) -> None:
         ax.clear()
         df.plot(kind="scatter", x="TRIAL_START", y="trial", ax=ax)
-
-    def make_trial_side_and_correct_plot(self, df: pd.DataFrame, ax: plt.Axes) -> None:
-        _ = side_correct_performance_plot(df, ax=ax)        
 
     def make_error_plot(self, ax) -> None:
         ax.clear()

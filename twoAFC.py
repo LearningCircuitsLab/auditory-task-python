@@ -1,5 +1,3 @@
-import os
-import pickle
 import random
 
 import numpy as np
@@ -8,7 +6,6 @@ from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
 from village.classes.task import Event, Output, Task
 from village.manager import manager
 
-from softcode_functions import TEMP_SOUND_PATH
 from sound_functions import cloud_of_tones
 
 
@@ -46,13 +43,13 @@ class TwoAFC(Task):
 
         ## Initiate conditions that won't change during training
         # Time the valve needs to open to deliver the reward amount
-        # Make sure to calibrate the valve before using it, otherwise this function
-        # will return the default value of 0.01 seconds
+        # Make sure to calibrate the valve/pump before using it, otherwise
+        # you will get errors
         self.left_valve_opening_time = manager.water_calibration.get_valve_time(
-            port=1, volume=self.settings.reward_amount_ml
+            port=1, water=self.settings.reward_amount_ml
         )
         self.right_valve_opening_time = manager.water_calibration.get_valve_time(
-            port=3, volume=self.settings.reward_amount_ml
+            port=3, water=self.settings.reward_amount_ml
         )
 
         # determine if punishment will be used
@@ -94,6 +91,8 @@ class TwoAFC(Task):
 
         # initialize the sound properties
         self.get_sound_from_settings()
+        # create a variable in manager to store the sound
+        manager.twoAFC_sound = None
         
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
@@ -245,8 +244,8 @@ class TwoAFC(Task):
         if self.trial_auditory_stimulus is not None:
             sound_stats = get_sound_stats(self.trial_auditory_stimulus)
             self.register_value("auditory_real_statistics", sound_stats)
-            # delete the file containing the sound
-            os.remove(TEMP_SOUND_PATH)
+            # reset the sound in the manager
+            manager.twoAFC_sound = None
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
@@ -412,9 +411,8 @@ class TwoAFC(Task):
                     "low_tones": low_mat.to_dict(),
                 }
 
-                # dump the sound to a temporary file
-                with open(TEMP_SOUND_PATH, "wb") as f:
-                    pickle.dump(sound, f)
+                # add the sound to manager so it is accessible by the softcode functions
+                manager.twoAFC_sound = sound
                 # load the sound to the Bpod in the ready_to_initiate state
                 self.ready_to_initiate_output.append(Output.SoftCode2)
                 # play the sound on the stimulus state

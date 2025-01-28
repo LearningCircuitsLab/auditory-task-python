@@ -35,18 +35,17 @@ class Habituation(Task):
         ]
 
         # Time the valve needs to open to deliver the reward amount
-        # Make sure to calibrate the valve before using it, otherwise this function
-        # will return the default value of 0.01 seconds
+        # Make sure to calibrate the valve before using it
         self.left_valve_opening_time = manager.water_calibration.get_valve_time(
-            port=1, volume=self.settings.reward_amount_ml
+            port=1, water=self.settings.reward_amount_ml
         )
         self.right_valve_opening_time = manager.water_calibration.get_valve_time(
-            port=3, volume=self.settings.reward_amount_ml
+            port=3, water=self.settings.reward_amount_ml
         )
 
-        # use maximum light intensity for both side ports
+        # use same light intensity for both side ports as in the middle port
         self.light_intensity_left = self.light_intensity_right = int(
-            self.settings.side_port_light_intensities[-1] * 255
+            self.settings.middle_port_light_intensity * 255
         )
 
     def create_trial(self):
@@ -112,7 +111,7 @@ class Habituation(Task):
         self.bpod.add_state(
             state_name="reward_state_left",
             state_timer=self.left_valve_opening_time,
-            state_change_conditions={Event.Tup: "iti"},
+            state_change_conditions={Event.Tup: "exit"},
             output_actions=[Output.Valve1],
         )
 
