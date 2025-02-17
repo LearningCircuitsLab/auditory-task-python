@@ -13,13 +13,13 @@ and after poking both sides light up. Mouse receives reward for poking
 in any port. This stage is used to habituate the mouse to the task.
 
 *Second stage is TwoAFC Task using visual stimuli.
-Here, center port lights up and after poking both ports light up with an easy discrimination.
+Here, center port lights up and after poking, both ports light up with an easy discrimination.
 Mouse receives reward for poking in the brightest port.
 
 *Third stage is TwoAFC using visual stimuli with increased difficulty.
 Both ports light up, but brightness can be more similar. Mouse receives reward for poking.
 
-*Fourth stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking
+*Fourth stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking,
 a cloud of tones is played. Mouse receives reward for poking in the correct port.
 
 *Fifth stage is TwoAFC using auditory stimuli with increased difficulty.
@@ -93,7 +93,9 @@ class TrainingSettings(Training):
         self.settings.stimulus_modality_block_size = 30
         # strength of the light in the middle port (0-1)
         self.settings.middle_port_light_intensity = 0.2
-        # time the mouse needs to wait in the center port (in seconds)
+        # time that, in Habituation, the trial jumps to the stimulus state (in seconds)
+        self.settings.time_to_auto_stimulus = 120
+        # time the mouse needs to wait in the center port in 2AFC (in seconds)
         self.settings.holding_response_time_min = 0.03
         self.settings.holding_response_time_max = 0.5
         self.settings.holding_response_time_step = 0.001
@@ -220,6 +222,7 @@ class TrainingSettings(Training):
                 "easy_light_intensity_difference",
                 "medium_light_intensity_difference",
                 "hard_light_intensity_difference",
+                "time_to_auto_stimulus",
             ],
             "Sound": [
                 "frequency_associated_with_left_choice",
@@ -275,7 +278,7 @@ class TrainingSettings(Training):
             self.settings.next_task = "TwoAFC"
             self.settings.current_training_stage = "TwoAFC_visual_easy"
             self.settings.stimulus_modality = "visual"
-            self.settings.trial_difficulties = ["easy"]
+            self.settings.easy_trials_on = True
             # trigger alarm
             self.promotion_alarm()
 
@@ -307,7 +310,9 @@ class TrainingSettings(Training):
                 ]
             ) and all([n_trials > 350 for n_trials in previous_n_trials]):
                 # change the trial difficulty
-                self.settings.trial_difficulties = ["easy", "medium", "hard"]
+                self.settings.easy_trials_on = True
+                self.settings.medium_trials_on = True
+                self.settings.hard_trials_on = True
                 # change training stage
                 match self.settings.stimulus_modality:
                     case "visual":
@@ -329,14 +334,17 @@ class TrainingSettings(Training):
         TwoAFC visual hard to TwoAFC auditory easy.
         """
         # logic to promote the animal to the auditory training stage:
-        # after 1500 trials in the hard visual training stage
+        # after 1500 trials in the hard visual training stage,
+        # with no performance requirements
         total_trials = self.df[
             self.df.current_training_stage == "TwoAFC_visual_hard"
         ].shape[0]
         if total_trials >= 1500:
             self.settings.stimulus_modality = "auditory"
             self.settings.current_training_stage = "TwoAFC_auditory_easy"
-            self.settings.trial_difficulties = ["easy"]
+            self.settings.easy_trials_on = True
+            self.settings.medium_trials_on = False
+            self.settings.hard_trials_on = False
             self.promotion_alarm()
 
         return None
@@ -344,7 +352,7 @@ class TrainingSettings(Training):
     def check_progression_from_tafc_auditory_hard(self) -> None:
         """
         This method checks if the animal is ready to get promoted from
-        TwoAFC auditory hard to TwoAFC auditory easy.
+        TwoAFC auditory hard to TwoAFC multisensory easy.
         """
         # logic to promote the animal to the auditory training stage:
         # after 1500 trials in the hard auditory training stage
@@ -353,7 +361,9 @@ class TrainingSettings(Training):
         ].shape[0]
         if total_trials >= 1500:
             self.settings.current_training_stage = "TwoAFC_multisensory_easy"
-            self.settings.trial_difficulties = ["easy"]
+            self.settings.easy_trials_on = True
+            self.settings.medium_trials_on = False
+            self.settings.hard_trials_on = False
             self.settings.stimulus_modality = "multisensory"
             self.settings.stimulus_modality_block_size = 30
             self.promotion_alarm()

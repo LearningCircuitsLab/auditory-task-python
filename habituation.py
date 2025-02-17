@@ -16,6 +16,8 @@ class Habituation(Task):
         The center port illuminates when a trial starts.
         After the center port is poked,
         both side ports are illuminated and give reward.
+
+        To keep mice engaged, ports give water if mouse has not poked in 2 mins.
         """
 
         # variables are defined in training_settings.py
@@ -77,6 +79,7 @@ class Habituation(Task):
             output_actions=[Output.BNC2High],
         )
 
+        # TODO: Is this a good idea? This might trap the mouse!
         self.bpod.add_state(
             state_name="close_door",
             state_timer=0,
@@ -88,8 +91,11 @@ class Habituation(Task):
         # 'ready_to_initiate' state that waits for the poke in the middle port
         self.bpod.add_state(
             state_name="ready_to_initiate",
-            state_timer=0,
-            state_change_conditions={Event.Port2In: "stimulus_state"},
+            state_timer=self.settings.time_to_auto_stimulus,
+            state_change_conditions={
+                Event.Port2In: "stimulus_state",
+                Event.Tup: "stimulus_state"
+                },
             output_actions=self.ready_to_initiate_output,
         )
 
