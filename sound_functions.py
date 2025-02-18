@@ -402,9 +402,10 @@ if __name__ == "__main__":
         "suboverlap": 0.01,
     }
 
+
     # # Generate a cloud of tones
-    # cot, _, _ = cloud_of_tones(**sound_properties, high_prob=.7, low_prob=.3)
-    # print(cot.shape)
+    cot, _, _ = cloud_of_tones(**sound_properties, high_prob=.7, low_prob=.3)
+    print(cot.shape)
 
     # # play it
     import time
@@ -413,14 +414,9 @@ if __name__ == "__main__":
 
     sd = SoundDevice(sound_properties["sample_rate"])
 
-    import pickle
-
-    from softcode_functions import TEMP_SOUND_PATH
-
-    cot = pickle.load(open(TEMP_SOUND_PATH, "rb"))
-
     sd.load(cot)
     sd.play()
+
     # time.sleep(2)
 
     # # # print the percentage of high and low tones
@@ -446,3 +442,5 @@ if __name__ == "__main__":
     plt.ylim(0, 20000)  # limit the y axis to 20 kHz
     # y axis log
     plt.show()
+    
+    sd.close()
