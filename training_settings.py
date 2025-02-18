@@ -24,9 +24,9 @@ a cloud of tones is played. Mouse receives reward for poking in the correct port
 
 *Fifth stage is TwoAFC using auditory stimuli with increased difficulty.
 
-*Sixth stage interleaves visual and auditory stimuli in easy mode. TODO: keep decreasing block size?
+*Sixth stage interleaves visual and auditory stimuli in easy mode in blocks.
 
-*Seventh stage interleaves visual and auditory stimuli in hard mode. TODO
+*Seventh stage interleaves visual and auditory stimuli in hard mode in blocks.
 
 Progression rules:
 - Reward keeps decreasing after each session that has more than 50 trials.
@@ -35,10 +35,14 @@ Progression rules:
   This is implemented in the task, but parameters for how to do this are here.
 - Animals move to the hard version of TwoAFC visual after after 3 consecutive 
   sessions with over 350 trials and with over 90% performance.
-- Animals move to auditory version when they complete over 1000 trials on
+- Animals move to auditory version when they complete over 1500 trials on
   the hard version of the visual task.
 - Animals move to the hard version of the auditory task is the same as the
   visual case.
+- Animals move to the multisensory task after completing 1500 trials on the
+  hard version of the auditory task.
+- Animals move to the hard version of the multisensory task is the same as the
+  visual and auditory case.
 """
 
 
@@ -90,7 +94,7 @@ class TrainingSettings(Training):
         # and the user needs to create and define them here
         # stimulus modality
         self.settings.stimulus_modality = "visual"
-        self.settings.stimulus_modality_block_size = 30
+        self.settings.stimulus_modality_block_size = 70
         # strength of the light in the middle port (0-1)
         self.settings.middle_port_light_intensity = 0.2
         # time that, in Habituation, the trial jumps to the stimulus state (in seconds)
@@ -196,6 +200,10 @@ class TrainingSettings(Training):
                 self.check_progression_from_tafc_easy()
             case "TwoAFC_auditory_hard":
                 self.check_progression_from_tafc_auditory_hard()
+            case "TwoAFC_multisensory_easy":
+                self.check_progression_from_tafc_easy()
+            case "TwoAFC_multisensory_hard":
+                self.check_progression_from_tafc_multisensory_hard()
             case "Manual_training":
                 # do nothing
                 pass
@@ -287,7 +295,7 @@ class TrainingSettings(Training):
     def check_progression_from_tafc_easy(self) -> None:
         """
         This method checks if the animal is ready to get promoted from
-        TwoAFC easy to TwoAFC hard. Equal for both modalities.
+        TwoAFC easy to TwoAFC hard. Equal for both modalities and multisensory.
         """
         # logic to promote the animal to the hard training stage:
         # after 3 consecutive sessions with over 350 trials and over 90% performance
@@ -319,6 +327,8 @@ class TrainingSettings(Training):
                         self.settings.current_training_stage = "TwoAFC_visual_hard"
                     case "auditory":
                         self.settings.current_training_stage = "TwoAFC_auditory_hard"
+                    case "multisensory":
+                        self.settings.current_training_stage = "TwoAFC_multisensory_hard"
                     case _:
                         # raise an error
                         log.error(
@@ -365,9 +375,12 @@ class TrainingSettings(Training):
             self.settings.medium_trials_on = False
             self.settings.hard_trials_on = False
             self.settings.stimulus_modality = "multisensory"
-            self.settings.stimulus_modality_block_size = 30
             self.promotion_alarm()
 
+        return None
+
+    def check_progression_from_tafc_multisensory_hard(self) -> None:
+        # Last stage, no progression, for now
         return None
 
     def promotion_alarm(self) -> None:

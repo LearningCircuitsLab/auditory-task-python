@@ -65,7 +65,9 @@ class TwoAFC(Task):
         # if doing multisensory, set the modality to random and generate a block
         if self.settings.stimulus_modality == "multisensory":
             self.stimulus_modality = random.choice(["visual", "auditory"])
-            self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30()
+            self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30(
+                self.settings.stimulus_modality_block_size
+            )
             self.stim_mod_block_counter = 1
         # if doing auditory or multisensory, set the contingency
         if self.settings.stimulus_modality in ["auditory", "multisensory"]:
@@ -116,8 +118,7 @@ class TwoAFC(Task):
         """
         This function updates the variables that will be used every trial
         """
-        print("")
-        print("Trial {0}".format(str(self.current_trial)))
+        print("Creating trial {0}".format(str(self.current_trial)))
 
         ## Start the task
         # On the first trial, the entry door to the behavioral box gets closed.
@@ -260,6 +261,14 @@ class TwoAFC(Task):
         was_trial_correct = self.get_performance_of_trial()
         self.register_value("correct", was_trial_correct)
 
+        # print information to screen
+        print("\t{0} {1} trial was {2}".format(
+            self.this_trial_side,
+            self.this_trial_difficulty,
+            "correct" if was_trial_correct else "incorrect"
+            )
+        )
+
         # store the holding time
         self.register_value("holding_time", self.time_to_hold_response)
         # if trial was correct, increase the holding time with a limit
@@ -315,7 +324,7 @@ class TwoAFC(Task):
                         self.stimulus_modality = "visual"
                     # generate a new block
                     self.current_stim_mod_block_trials_left = (
-                        get_block_size_uniform_pm30()
+                        get_block_size_uniform_pm30(self.settings.stimulus_modality_block_size)
                     )
                     self.stim_mod_block_counter += 1
                     print(
@@ -445,7 +454,8 @@ class TwoAFC(Task):
         You can access the trial information in self.trial_data
         """
         # get the side port that the mouse poked first
-        first_poke = self.find_first_occurrence(
+        # TODO: test me!!!!!!
+        first_poke = self.first_poke_after_center(
             self.trial_data["ordered_list_of_events"],
             ["Port1In", "Port3In"],
         )
@@ -462,6 +472,14 @@ class TwoAFC(Task):
             if event in targets:
                 return event
         return "NaN"
+    
+    def first_poke_after_center(self, event_list, targets):
+        # TODO Code this!!!
+        raise Exception("Not implemented")
+        # get timestamp of the first occurrence of "stimulus_state"
+
+        # find the first poke after that timestamp
+        
 
 
 # Uncomment below if you want to programatically interact with
