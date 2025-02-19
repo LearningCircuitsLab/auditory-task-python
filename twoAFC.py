@@ -455,10 +455,7 @@ class TwoAFC(Task):
         """
         # get the side port that the mouse poked first
         # TODO: test me!!!!!!
-        first_poke = self.first_poke_after_center(
-            self.trial_data["ordered_list_of_events"],
-            ["Port1In", "Port3In"],
-        )
+        first_poke = self.first_poke_after_stimulus_state()
         # check if the mouse poked the correct port
         if first_poke == "Port1In" and self.this_trial_side == "left":
             return True
@@ -467,19 +464,42 @@ class TwoAFC(Task):
         else:
             return False
 
-    def find_first_occurrence(self, event_list, targets):
-        for event in event_list:
-            if event in targets:
-                return event
-        return "NaN"
-    
-    def first_poke_after_center(self, event_list, targets):
-        # TODO Code this!!!
-        raise Exception("Not implemented")
-        # get timestamp of the first occurrence of "stimulus_state"
-
-        # find the first poke after that timestamp
+    def first_poke_after_stimulus_state(self):
+        stim_state_array = self.trial_data["STATE_stimulus_state_START"]
+        if len(stim_state_array) == 0:
+            return None
+        start_time = min(stim_state_array)
+        # check if the keys are in the dict
+        if "Port1In" in self.trial_data.keys():
+            port1_in = self.trial_data["Port1In"]
+            if type(port1_in) is float:
+                port1_in = [port1_in]
+        else:
+            port1_in = []
+        if "Port3In" in self.trial_data.keys():
+            port3_in = self.trial_data["Port3In"]
+            if type(port3_in) is float:
+                port3_in = [port3_in]
+        else:
+            port3_in = []       
         
+        port1_in_after = [i for i in port1_in if i > start_time]
+        port3_in_after = [i for i in port3_in if i > start_time]
+        
+        if len(port1_in_after) == 0 and len(port3_in_after) == 0:
+            return None
+        elif len(port1_in_after) == 0:
+            return "Port3In"
+        elif len(port3_in_after) == 0:
+            return "Port1In"
+        
+        if np.min(port1_in_after) < np.min(port3_in_after):
+            return "Port1In"
+        elif np.min(port3_in_after) < np.min(port1_in_after):
+            return "Port3In"
+        else:
+            return None
+            
 
 
 # Uncomment below if you want to programatically interact with
