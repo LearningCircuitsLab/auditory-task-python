@@ -251,6 +251,7 @@ class TrainingSettings(Training):
             "Hide": [
                 "trial_sides",
                 "sample_rate",
+                "holding_response_time",
             ],
         }
 

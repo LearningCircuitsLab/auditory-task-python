@@ -39,10 +39,10 @@ class Habituation(Task):
         # Time the valve needs to open to deliver the reward amount
         # Make sure to calibrate the valve before using it
         self.left_valve_opening_time = manager.water_calibration.get_valve_time(
-            port=1, water=self.settings.reward_amount_ml
+            port=1, volume=self.settings.reward_amount_ml
         )
         self.right_valve_opening_time = manager.water_calibration.get_valve_time(
-            port=3, water=self.settings.reward_amount_ml
+            port=3, volume=self.settings.reward_amount_ml
         )
 
         # use same light intensity for both side ports as in the middle port
