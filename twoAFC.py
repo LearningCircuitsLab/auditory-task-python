@@ -86,7 +86,7 @@ class TwoAFC(Task):
                 "side": np.full(int(self.settings.anti_bias_vector_size), "ignore"), # ignore the first trials
                 "correct": np.full(int(self.settings.anti_bias_vector_size), False),
             }
-        
+
         # initialize the variables that will hold the stimuli for the trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
@@ -95,7 +95,7 @@ class TwoAFC(Task):
         self.get_sound_from_settings()
         # create a variable in manager to store the sound
         manager.twoAFC_sound = None
-        
+
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
         if self.settings.easy_trials_on:
@@ -121,16 +121,8 @@ class TwoAFC(Task):
         print("Creating trial {0}".format(str(self.current_trial)))
 
         ## Start the task
-        # On the first trial, the entry door to the behavioral box gets closed.
-        # This is coded as a transition in the 'close_door' state.
-        if self.current_trial == 1:
-            # Close the door
-            self.start_of_trial_transition = "close_door"
-        else:
-            self.start_of_trial_transition = "ready_to_initiate"
-
-        # Trial start state:
-        # Turn on light in the middle port
+        # Trial start state: Turn on light in the middle port
+        # Things can be appended elsewhere to this state like loading the sound
         self.ready_to_initiate_output = [
             (
                 Output.PWM2,
@@ -140,13 +132,10 @@ class TwoAFC(Task):
 
         # define the modality of the stimulus
         self.set_stimulus_modality()
-
         # pick a trial type. For now, random
         self.generate_trial_type()
-
         ## Set the variables for the stimulus states and the possible choices
         self.set_stimulus_state_conditions()
-
         # assemble the state machine
         self.assemble_state_machine()
 
@@ -156,15 +145,8 @@ class TwoAFC(Task):
         self.bpod.add_state(
             state_name="start_of_trial",
             state_timer=0.001,
-            state_change_conditions={Event.Tup: self.start_of_trial_transition},
-            output_actions=[Output.BNC2High],
-        )
-
-        self.bpod.add_state(
-            state_name="close_door",
-            state_timer=0,
             state_change_conditions={Event.Tup: "ready_to_initiate"},
-            output_actions=[Output.SoftCode1],
+            output_actions=[Output.BNC2High],
         )
 
         # 'ready_to_initiate' state that waits for the poke in the middle port
@@ -224,20 +206,15 @@ class TwoAFC(Task):
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
         self.register_value("water", self.settings.reward_amount_ml)
-
         # register the training stage
         self.register_value("current_training_stage", self.settings.current_training_stage)
-
         # we will also record the trial type, which will be used by training_settings.py
         # to make sure that the animal does not go from the second stage to the first one
         self.register_value("correct_side", self.this_trial_side)
-
         # register the modality of the stimulus
         self.register_value("stimulus_modality", self.stimulus_modality)
-
         # register the difficulty of the trial
         self.register_value("difficulty", self.this_trial_difficulty)
-
         # register the actual stimuli used
         self.register_value("visual_stimulus", self.trial_visual_stimulus)
         self.register_value("auditory_stimulus", self.trial_auditory_stimulus)
@@ -250,13 +227,11 @@ class TwoAFC(Task):
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
-
         # if multisensory, register the block number
         if self.settings.stimulus_modality == "multisensory":
             self.register_value(
                 "stimulus_modality_block_number", self.stim_mod_block_counter
             )
-
         # we will also record if the trial was correct or not
         was_trial_correct = self.get_performance_of_trial()
         self.register_value("correct", was_trial_correct)
