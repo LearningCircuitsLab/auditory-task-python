@@ -4,7 +4,7 @@ from village.manager import manager
 
 def function2():
     # load the sound loaded in manager
-    sound_device.load(manager.twoAFC_sound)
+    sound_device.load(right=manager.twoAFC_sound, left=None)
 
 
 def function3():
