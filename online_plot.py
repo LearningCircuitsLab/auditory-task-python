@@ -38,7 +38,7 @@ class Online_Plot(OnlinePlotFigureManager):
         except Exception as e:
             print(e)
             self.make_error_plot(self.ax2)
-        
+
         self.fig.tight_layout()
         self.fig.canvas.draw()
 
