@@ -17,7 +17,7 @@ class Habituation(Task):
         After the center port is poked,
         both side ports are illuminated and give reward.
 
-        To keep mice engaged, ports give water if mouse has not poked in 2 mins.
+        To keep mice engaged, ports give water if mouse has not poked after some time.
         """
 
         # variables are defined in training_settings.py
@@ -73,10 +73,10 @@ class Habituation(Task):
         # 'ready_to_initiate' state that waits for the poke in the middle port
         self.bpod.add_state(
             state_name="ready_to_initiate",
-            state_timer=self.settings.time_to_auto_stimulus,
+            state_timer=self.settings.time_to_auto_reward,
             state_change_conditions={
                 Event.Port2In: "stimulus_state",
-                Event.Tup: "stimulus_state"
+                Event.Tup: "auto_reward_state_left",
                 },
             output_actions=self.ready_to_initiate_output,
         )
@@ -105,6 +105,21 @@ class Habituation(Task):
 
         self.bpod.add_state(
             state_name="reward_state_right",
+            state_timer=self.right_valve_opening_time,
+            state_change_conditions={Event.Tup: "exit"},
+            output_actions=[Output.Valve3],
+        )
+
+        # 'auto_reward_state' state that delivers reward if the mouse has not poked in the middle port
+        self.bpod.add_state(
+            state_name="auto_reward_state_left",
+            state_timer=self.left_valve_opening_time,
+            state_change_conditions={Event.Tup: "auto_reward_state_right"},
+            output_actions=[Output.Valve1],
+        )
+
+        self.bpod.add_state(
+            state_name="auto_reward_state_right",
             state_timer=self.right_valve_opening_time,
             state_change_conditions={Event.Tup: "exit"},
             output_actions=[Output.Valve3],

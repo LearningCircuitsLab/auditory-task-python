@@ -97,8 +97,8 @@ class TrainingSettings(Training):
         self.settings.stimulus_modality_block_size = 70
         # strength of the light in the middle port (0-1)
         self.settings.middle_port_light_intensity = 0.2
-        # time that, in Habituation, the trial jumps to the stimulus state (in seconds)
-        self.settings.time_to_auto_stimulus = 120
+        # time that, in Habituation, the trial ends and reward is automatically delivered (in seconds)
+        self.settings.time_to_auto_reward = 120
         # time the mouse needs to wait in the center port in 2AFC (in seconds)
         self.settings.holding_response_time_min = 0.03
         self.settings.holding_response_time_max = 0.5
@@ -230,7 +230,7 @@ class TrainingSettings(Training):
                 "easy_light_intensity_difference",
                 "medium_light_intensity_difference",
                 "hard_light_intensity_difference",
-                "time_to_auto_stimulus",
+                "time_to_auto_reward",
             ],
             "Sound": [
                 "frequency_associated_with_left_choice",
