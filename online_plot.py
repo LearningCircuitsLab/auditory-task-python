@@ -20,12 +20,13 @@ class Online_Plot(OnlinePlotFigureManager):
         )
         self.ax1 = self.fig.add_subplot(top_gs[0, 0])
         self.ax2 = self.fig.add_subplot(bot_gs[0, 0])
+        self.ax3 = self.fig.add_subplot(bot_gs[0, 1])
 
     def update_plot(self, df: pd.DataFrame) -> None:
-        # try:
-        #     self.make_timing_plot(df, self.ax1)
-        # except Exception:
-        #     self.make_error_plot(self.ax1)
+        try:
+            self.make_timing_plot(df, self.ax3)
+        except Exception:
+            self.make_error_plot(self.ax3)
         try:
             self.ax1.clear()
             self.ax1 = side_correct_performance_plot(df, self.ax1, 50)
