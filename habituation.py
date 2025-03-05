@@ -119,19 +119,12 @@ class Habituation(Task):
             output_actions=[Output.Valve3],
         )
 
-        # 'auto_reward_state' state that delivers reward if the mouse has not poked in the middle port
+        # 'auto_reward_state' state that delivers reward automatically
         self.bpod.add_state(
             state_name="auto_reward_state_left",
             state_timer=self.left_valve_opening_time,
-            state_change_conditions={Event.Tup: "auto_reward_state_right"},
+            state_change_conditions={Event.Tup: "reward_state_right"},
             output_actions=[Output.Valve1],
-        )
-
-        self.bpod.add_state(
-            state_name="auto_reward_state_right",
-            state_timer=self.right_valve_opening_time,
-            state_change_conditions={Event.Tup: "exit"},
-            output_actions=[Output.Valve3],
         )
 
     def after_trial(self):
