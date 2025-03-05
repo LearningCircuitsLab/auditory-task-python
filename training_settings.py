@@ -88,7 +88,7 @@ class TrainingSettings(Training):
         self.settings.current_training_stage = "Habituation"
         self.settings.refractary_period = 14400
         self.settings.minimum_duration = 600
-        self.settings.maximum_duration = 3600
+        self.settings.maximum_duration = 1800
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here

@@ -131,7 +131,7 @@ class Habituation(Task):
         # register the amount of water given to the mouse in this trial
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
-        self.bpod.register_value("water", self.settings.reward_amount_ml)
+        self.register_value("water", self.settings.reward_amount_ml)
 
     def close(self):
         print("Closing Habituation task")
