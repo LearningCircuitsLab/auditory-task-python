@@ -17,6 +17,9 @@ class Habituation(Task):
         After the center port is poked,
         both side ports are illuminated and give reward.
 
+        To motivate mice, at the beginning, water is delivered automatically
+        (3x reward amount in each side port)
+        
         To keep mice engaged, ports give water if mouse has not poked after some time.
         """
 
@@ -57,6 +60,12 @@ class Habituation(Task):
         print("")
         print("Trial {0}".format(str(self.current_trial)))
 
+        # the first three trials gives reward automatically (equal to large reward)
+        if self.current_trial < 4:
+            self.start_of_trial_transition = "auto_reward_state_left"
+        else:
+            self.start_of_trial_transition = "ready_to_initiate"
+
         # assemble the state machine
         self.assemble_state_machine()
 
@@ -66,7 +75,7 @@ class Habituation(Task):
         self.bpod.add_state(
             state_name="start_of_trial",
             state_timer=0.001,
-            state_change_conditions={Event.Tup: "ready_to_initiate"},
+            state_change_conditions={Event.Tup: self.start_of_trial_transition},
             output_actions=[Output.BNC2High],
         )
 
