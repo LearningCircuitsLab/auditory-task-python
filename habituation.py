@@ -132,6 +132,11 @@ class Habituation(Task):
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
         self.register_value("water", self.settings.reward_amount_ml)
+        # register the training stage
+        self.register_value("current_training_stage", self.settings.current_training_stage)
+        self.register_value("correct", True)
+        # register the modality of the stimulus
+        self.register_value("stimulus_modality", "visual")
 
     def close(self):
         print("Closing Habituation task")
