@@ -17,10 +17,11 @@ class Habituation(Task):
         After the center port is poked,
         both side ports are illuminated and give reward.
 
-        To motivate mice, at the beginning, water is delivered automatically
-        (3x reward amount in each side port)
+        In initial stages of this task:
+        - To motivate mice, at the beginning, water is delivered automatically
+          (3x reward amount in each side port)
         
-        To keep mice engaged, ports give water if mouse has not poked after some time.
+        - To keep mice engaged, ports give water if mouse has not poked after some time.
         """
 
         # variables are defined in training_settings.py
@@ -61,7 +62,7 @@ class Habituation(Task):
         print("Trial {0}".format(str(self.current_trial)))
 
         # the first three trials gives reward automatically (equal to large reward)
-        if self.current_trial < 4:
+        if self.current_trial < 4 and self.settings.initial_large_reward == True:
             self.start_of_trial_transition = "auto_reward_state_left"
         else:
             self.start_of_trial_transition = "ready_to_initiate"

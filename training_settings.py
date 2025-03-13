@@ -91,7 +91,7 @@ class TrainingSettings(Training):
         # that runs on Traning Village
         self.settings.next_task = "Habituation"
         self.settings.current_training_stage = "Habituation"
-        self.settings.refractary_period = 14400
+        self.settings.refractary_period = 14400 # 4 hours
         self.settings.minimum_duration = 600
         self.settings.maximum_duration = 1800
 
@@ -104,6 +104,7 @@ class TrainingSettings(Training):
         self.settings.middle_port_light_intensity = 0.2
         # time that, in Habituation, the trial ends and reward is automatically delivered (in seconds)
         self.settings.time_to_auto_reward = 120
+        self.settings.initial_large_reward = True
         # time the mouse needs to wait in the center port in 2AFC (in seconds)
         self.settings.holding_response_time_min = 0.03
         self.settings.holding_response_time_max = 0.5
@@ -230,12 +231,15 @@ class TrainingSettings(Training):
                 "medium_trials_on",
                 "hard_trials_on",
             ],
+            "Habituation": [
+                "initial_large_reward",
+                "time_to_auto_reward",
+            ],
             "Visual": [
                 "side_port_wrong_intensities_extremes",
                 "easy_light_intensity_difference",
                 "medium_light_intensity_difference",
                 "hard_light_intensity_difference",
-                "time_to_auto_reward",
             ],
             "Sound": [
                 "frequency_associated_with_left_choice",
@@ -278,6 +282,7 @@ class TrainingSettings(Training):
             "medium_trials_on": [True, False],
             "hard_trials_on": [True, False],
             "frequency_associated_with_left_choice": ["low", "high"],
+            "initial_large_reward": [True, False],
         }
 
 
@@ -286,6 +291,18 @@ class TrainingSettings(Training):
         This method checks if the animal is ready to get promoted from habituation
         to the TwoAFC visual easy training stage.
         """
+        # remove the automatic water at the beginning after a few sessions
+        total_sessions = self.df.session.nunique()
+        if total_sessions >= 4:
+            self.settings.initial_large_reward = False
+            # add 20 seconds to the auto reward time for each session
+            self.settings.time_to_auto_reward += 20
+
+            # increase min time and refractory period (6 hours)
+            self.increase_min_time_and_refractory_period(
+                minimum_duration_max=30*60, refractary_period_max=6*60*60
+            )
+
         # has the animal completed 300 trials?
         total_trials = self.df.shape[0]
         if total_trials >= 300:
@@ -305,7 +322,15 @@ class TrainingSettings(Training):
         """
         # logic to promote the animal to the hard training stage:
         # after 3 consecutive sessions with over 350 trials and over 90% performance
-        total_sessions = self.df.session.nunique()
+        # find the last current training stage
+
+        total_sessions = self.df[self.df.current_training_stage == self.settings.current_training_stage].session.nunique()
+
+        if total_sessions >= 3:
+            self.increase_min_time_and_refractory_period(
+                minimum_duration_max=40*60, refractary_period_max=8*60*60
+            )
+
         n_sessions = 3
         performance_threshold = 0.9
         if total_sessions >= n_sessions:
@@ -398,6 +423,22 @@ class TrainingSettings(Training):
             description=f"Promotion to {self.settings.current_training_stage}",
         )
         return None
+    
+    def increase_min_time_and_refractory_period(
+            self,
+            minimum_duration_max = 2400,
+            refractary_period_max = 28800,
+        ) -> None:
+        # increase the min time of the session 2 minutes for each session
+        # with a limit to 40 minutes
+        self.settings.minimum_duration = min(
+            self.settings.minimum_duration + 120, minimum_duration_max
+        )
+        # increase the refractory period 20 minutes for each session with
+        # a limit to 8 hours
+        self.settings.refractary_period = min(
+            self.settings.refractary_period + 1200, refractary_period_max
+        )
 
 
 # # for debugging purposes
