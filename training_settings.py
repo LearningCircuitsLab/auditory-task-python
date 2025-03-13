@@ -11,6 +11,11 @@ Two Alternative Force Choice Task for the Training Village.
 *First stage of training is Habituation Task. Here, center port lights up
 and after poking both sides light up. Mouse receives reward for poking
 in any port. This stage is used to habituate the mouse to the task.
+TODO:
+- remove the water at the beginning after a few sessions
+- remove the auto water after 2 minutes
+- increase the minimum time
+- increase the inter-session time
 
 *Second stage is TwoAFC Task using visual stimuli.
 Here, center port lights up and after poking, both ports light up with an easy discrimination.

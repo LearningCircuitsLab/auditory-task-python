@@ -7,6 +7,7 @@ from village.classes.plot import OnlinePlotFigureManager
 
 
 class Online_Plot(OnlinePlotFigureManager):
+    # TODO: make this nice and add something informative for habituation, like the side chosen
     def __init__(self) -> None:
         super().__init__()
         self.fig = plt.figure(figsize=(20, 5))
