@@ -42,7 +42,6 @@ class Online_Plot(OnlinePlotFigureManager):
             self.make_error_plot(self.ax2)
 
         self.fig.tight_layout()
-        self.fig.canvas.draw()
 
     def make_timing_plot(self, df: pd.DataFrame, ax: plt.Axes) -> None:
         ax.clear()

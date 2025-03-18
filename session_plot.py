@@ -1,10 +1,10 @@
 import pandas as pd
 from lecilab_behavior_analysis.figure_maker import session_summary_figure
 from matplotlib.figure import Figure
-from village.classes.plot import SessionPlot
+from village.classes.plot import SessionPlotFigureManager
 
 
-class Session_Plot(SessionPlot):
+class Session_Plot(SessionPlotFigureManager):
     def __init__(self) -> None:
         super().__init__()
 

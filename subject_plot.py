@@ -1,10 +1,10 @@
 import pandas as pd
 from lecilab_behavior_analysis.figure_maker import subject_progress_figure
 from matplotlib.figure import Figure
-from village.classes.plot import SubjectPlot
+from village.classes.plot import SubjectPlotFigureManager
 
 
-class Subject_Plot(SubjectPlot):
+class Subject_Plot(SubjectPlotFigureManager):
     def __init__(self) -> None:
         super().__init__()
 
