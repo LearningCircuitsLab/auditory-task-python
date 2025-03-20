@@ -202,10 +202,6 @@ class TwoAFC(Task):
         )
 
     def after_trial(self) -> None:
-        # register the amount of water given to the mouse in this trial
-        # do not delete this variable, it is used to calculate the water consumption
-        # and trigger alarms. You can override the alarms in the GUI
-        self.register_value("water", self.settings.reward_amount_ml)
         # register the training stage
         self.register_value("current_training_stage", self.settings.current_training_stage)
         # we will also record the trial type, which will be used by training_settings.py
@@ -235,6 +231,14 @@ class TwoAFC(Task):
         # we will also record if the trial was correct or not
         was_trial_correct = self.get_performance_of_trial()
         self.register_value("correct", was_trial_correct)
+
+        # register the amount of water given to the mouse in this trial
+        # do not delete this variable, it is used to calculate the water consumption
+        # and trigger alarms. You can override the alarms in the GUI
+        if was_trial_correct:
+            self.register_value("water", self.settings.reward_amount_ml)
+        else:
+            self.register_value("water", 0)
 
         # print information to screen
         print("\t{0} {1} trial was {2}".format(
