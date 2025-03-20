@@ -93,7 +93,7 @@ class TrainingSettings(Training):
         self.settings.current_training_stage = "Habituation"
         self.settings.refractary_period = 14400 # 4 hours
         self.settings.minimum_duration = 600
-        self.settings.maximum_duration = 1800
+        self.settings.maximum_duration = 3600
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
@@ -111,7 +111,7 @@ class TrainingSettings(Training):
         self.settings.holding_response_time_step = 0.001
         self.settings.holding_response_time = self.settings.holding_response_time_min
         # time the mouse has to respond (in seconds)
-        self.settings.timer_for_response = 5
+        self.settings.timer_for_response = 50
         # reward amount in ml to start with (in ml)
         self.settings.reward_amount_ml = 5
         # inter trial interval (in seconds)
