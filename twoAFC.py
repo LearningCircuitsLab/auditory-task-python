@@ -235,7 +235,7 @@ class TwoAFC(Task):
         # register the amount of water given to the mouse in this trial
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
-        if was_trial_correct:
+        if self.has_state_occurred("STATE_reward_state_START"):
             self.register_value("water", self.settings.reward_amount_ml)
         else:
             self.register_value("water", 0)
@@ -478,7 +478,17 @@ class TwoAFC(Task):
             return "Port3In"
         else:
             return None
-            
+    
+    def has_state_occurred(self, state_name: str) -> bool:
+        """
+        This method checks if a state has occurred in the trial
+        """
+        if state_name not in self.trial_data.keys():
+            return False
+        elif len(self.trial_data[state_name]) == 0:
+            return False
+        else:
+            return True
 
 
 # Uncomment below if you want to programatically interact with
