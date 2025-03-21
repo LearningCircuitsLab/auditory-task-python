@@ -487,6 +487,9 @@ class TwoAFC(Task):
             return False
         elif len(self.trial_data[state_name]) == 0:
             return False
+        # if all is nan
+        elif all(np.isnan(self.trial_data[state_name])):
+            return False
         else:
             return True
 
