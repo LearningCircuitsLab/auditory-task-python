@@ -91,9 +91,9 @@ class TrainingSettings(Training):
         # that runs on Traning Village
         self.settings.next_task = "Habituation"
         self.settings.current_training_stage = "Habituation"
-        self.settings.refractary_period = 14400 # 4 hours
-        self.settings.minimum_duration = 600
-        self.settings.maximum_duration = 3600
+        self.settings.refractary_period = 2*60*60 # 2 hours
+        self.settings.minimum_duration = 10*60 # 10 minutes
+        self.settings.maximum_duration = 30*60 # 30 minutes
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
@@ -298,9 +298,11 @@ class TrainingSettings(Training):
             # add 20 seconds to the auto reward time for each session
             self.settings.time_to_auto_reward += 20
 
-            # increase min time and refractory period (6 hours)
+            # increase min time and refractory period (4 hours)
             self.increase_min_time_and_refractory_period(
-                minimum_duration_max=30*60, refractary_period_max=6*60*60
+                minimum_duration_max=20*60,
+                refractary_period_max=4*60*60,
+                maximum_duration_max=40*60,
             )
 
         # has the animal completed 300 trials?
@@ -328,7 +330,9 @@ class TrainingSettings(Training):
 
         if total_sessions >= 3:
             self.increase_min_time_and_refractory_period(
-                minimum_duration_max=40*60, refractary_period_max=8*60*60
+                minimum_duration_max=30*60,
+                refractary_period_max=6*60*60,
+                maximum_duration_max=50*60,
             )
 
         n_sessions = 3
@@ -428,16 +432,22 @@ class TrainingSettings(Training):
             self,
             minimum_duration_max = 2400,
             refractary_period_max = 28800,
+            maximum_duration_max = 3600,
         ) -> None:
-        # increase the min time of the session 2 minutes for each session
-        # with a limit to 40 minutes
+        # increase the min time of the session 1 minutes for each session
+        # with a limit
         self.settings.minimum_duration = min(
-            self.settings.minimum_duration + 120, minimum_duration_max
+            self.settings.minimum_duration + 60, minimum_duration_max
         )
-        # increase the refractory period 20 minutes for each session with
-        # a limit to 8 hours
+        # increase the refractory period 5 minutes for each session with
+        # a limit
         self.settings.refractary_period = min(
-            self.settings.refractary_period + 1200, refractary_period_max
+            self.settings.refractary_period + 5*60, refractary_period_max
+        )
+        # increase the maximum duration 1 minutes for each session with
+        # a limit
+        self.settings.maximum_duration = min(
+            self.settings.maximum_duration + 60, maximum_duration_max
         )
 
 
