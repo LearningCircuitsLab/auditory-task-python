@@ -8,9 +8,8 @@ class Subject_Plot(SubjectPlotFigureManager):
     def __init__(self) -> None:
         super().__init__()
 
-    def create_plot(self, df: pd.DataFrame, width: float = 10, height: float = 8) -> Figure:
+    def create_plot(self, df: pd.DataFrame, width: float = 15, height: float = 10) -> Figure:
         """
         Overrides the default method to add a calendar
         """
-        # TODO: get the mouse name
-        return subject_progress_figure(df, title = "subject plot")
+        return subject_progress_figure(df, width=width, height=height)
