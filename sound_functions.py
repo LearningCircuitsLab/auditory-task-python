@@ -381,7 +381,6 @@ def generate_frequency_sound(row, sample_rate, subduration, suboverlap, ramp_tim
     
     return sound
 
-calibration_sounds = []
 
 if __name__ == "__main__":
     # # Define frequencies
