@@ -4,7 +4,6 @@ import numpy as np
 from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
                                              get_right_bias, get_sound_stats)
 from village.classes.task import Event, Output, Task
-from village.manager import manager
 
 from sound_functions import cloud_of_tones
 
@@ -45,10 +44,10 @@ class TwoAFC(Task):
         # Time the valve needs to open to deliver the reward amount
         # Make sure to calibrate the valve/pump before using it, otherwise
         # you will get errors
-        self.left_valve_opening_time = manager.water_calibration.get_valve_time(
+        self.left_valve_opening_time = self.water_calibration.get_valve_time(
             port=1, volume=self.settings.reward_amount_ml
         )
-        self.right_valve_opening_time = manager.water_calibration.get_valve_time(
+        self.right_valve_opening_time = self.water_calibration.get_valve_time(
             port=3, volume=self.settings.reward_amount_ml
         )
 
@@ -100,7 +99,7 @@ class TwoAFC(Task):
         # initialize the sound properties
         self.get_sound_from_settings()
         # create a variable in manager to store the sound
-        manager.twoAFC_sound = None
+        self.twoAFC_sound = None
 
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
@@ -238,7 +237,7 @@ class TwoAFC(Task):
             sound_stats = get_sound_stats(self.trial_auditory_stimulus)
             self.register_value("auditory_real_statistics", sound_stats)
             # reset the sound in the manager
-            manager.twoAFC_sound = None
+            self.twoAFC_sound = None
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None

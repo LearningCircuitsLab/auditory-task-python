@@ -2,8 +2,9 @@ from village.devices.sound_device import sound_device
 from village.settings import settings
 from sound_functions import tone_generator
 import numpy as np
-import village.manager.task as task
+from village.manager import get_task
 
+task = get_task()
 
 def function1():
     # stop sound

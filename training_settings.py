@@ -155,8 +155,8 @@ class TrainingSettings(Training):
         self.settings.tone_overlap = 0.01
         self.settings.tone_ramp_time = 0.005
         self.settings.top_amplitude_mean = 70
-        self.settings.bottom_amplitude_mean = 60
-        self.settings.amplitude_std = 3
+        self.settings.bottom_amplitude_mean = 70
+        self.settings.amplitude_std = 5
 
     def update_training_settings(self) -> None:
         """
