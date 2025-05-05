@@ -433,14 +433,14 @@ class TwoAFC(Task):
                     lambda db: self.get_sound_gain(
                         self.speaker,
                         db,
-                        "high_tones_calibration_matrix",
+                        "high_tones_calibration_sound",
                         )
                 )
                 low_mat_calibrated = low_mat.applymap(
                     lambda db: self.get_sound_gain(
                         self.speaker,
                         db,
-                        "low_tones_calibration_matrix",
+                        "low_tones_calibration_sound",
                         )
                 )
                 # generate the sound

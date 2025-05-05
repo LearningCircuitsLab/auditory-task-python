@@ -406,6 +406,17 @@ def generate_frequency_sound(row, sample_rate, subduration, suboverlap, ramp_tim
     return sound
 
 
+## Generate functions that will be used to calibrate sounds
+def high_tones_calibration_sound():
+    pass
+
+
+
+sound_calibration_functions = [
+    high_tones_calibration_sound,
+]
+
+
 if __name__ == "__main__":
     # # Define frequencies
     lowest_freq = 5000
