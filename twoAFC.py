@@ -102,7 +102,7 @@ class TwoAFC(Task):
         # create a variable in manager to store the sound
         self.twoAFC_sound = None
         # find the speaker that this system is using
-        self.speaker = speaker_dict(self.system_name)
+        self.speaker = speaker_dict[self.system_name]
 
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
@@ -171,7 +171,7 @@ class TwoAFC(Task):
         # the minimum time is defined in the settings
         self.bpod.add_state(
             state_name="hold_center_port",
-            state_timer=self.settings.time_to_hold_response_min,
+            state_timer=self.settings.holding_response_time_min,
             state_change_conditions={
                 Event.Port2Out: "ready_to_initiate",
                 Event.Tup: "hold_while_stimulus",
@@ -502,7 +502,7 @@ class TwoAFC(Task):
         stim_state_array = self.trial_data["STATE_stimulus_state_START"]
         if len(stim_state_array) == 0:
             return None
-        start_time = max(stim_state_array)
+        start_time = min(stim_state_array)
         # check if the keys are in the dict
         if "Port1In" in self.trial_data.keys():
             port1_in = self.trial_data["Port1In"]
