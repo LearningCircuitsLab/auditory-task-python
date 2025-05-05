@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from village import settings
 
 
 # dicctionary to get the speaker number for each setup
@@ -269,7 +270,6 @@ def generate_tone_matrix(frequencies, n_timebins, total_probability):
 
 
 def cloud_of_tones_matrices(
-    sample_rate: int,
     duration: float,
     high_freq_list: list,
     low_freq_list: list,
@@ -280,13 +280,11 @@ def cloud_of_tones_matrices(
     amplitude_std: float,
     subduration: float,
     suboverlap: float,
-    ramp_time: float,
 ):
     """
     Generate a cloud of overlapping tones
 
     Args:
-        sample_rate (int): Sample rate in Hz
         duration (float): Total duration of sound in seconds
         high_freq_list (array-like): High frequency range (Hz)
         low_freq_list (array-like): Low frequency range (Hz)
@@ -297,7 +295,6 @@ def cloud_of_tones_matrices(
         amplitude_std (float): Standard deviation of amplitude values in dB
         subduration (float): Duration of each tone in seconds
         suboverlap (float): Overlap between consecutive tones in seconds
-        ramp_time (float): Ramp up/down time in seconds
 
     Returns:
         pd.DataFrame: High tones sound matrix (frequencies x timebins)
@@ -406,14 +403,44 @@ def generate_frequency_sound(row, sample_rate, subduration, suboverlap, ramp_tim
     return sound
 
 
-## Generate functions that will be used to calibrate sounds
-def high_tones_calibration_sound():
-    pass
+## Calibraion sounds
+def cloud_of_tones_calibration_sound(duration: float, gain: float, freqs: list, probability: int) -> np.ndarray:
+    subduration = 0.03
+    suboverlap = 0.01
+    ramp_time = 0.005
+
+    non_overlap = subduration - suboverlap
+    number_of_timebins = int(np.floor(duration / non_overlap))
+    high_mat, _ = generate_tone_matrix(freqs, number_of_timebins, probability)
+    # substitute the amplitude with the gain
+    high_mat = high_mat * gain
+    sound = sound_matrix_to_sound(
+        high_mat,
+        sample_rate=settings.get("SAMPLERATE"),
+        subduration=subduration,
+        suboverlap=suboverlap,
+        ramp_time=ramp_time,
+    )
+    return sound
 
 
+def low_cloud_70(duration: float, gain: float) -> np.ndarray:
+    """
+    Generate a sound with low tones with 70% probability
+    """
+    freqs = np.round(np.logspace(np.log10(5000), np.log10(10000), 6)).tolist()
+    return cloud_of_tones_calibration_sound(duration, gain, freqs, .7)
+
+def high_cloud_70(duration: float, gain: float) -> np.ndarray:
+    """
+    Generate a sound with high tones with 70% probability
+    """
+    freqs = np.round(np.logspace(np.log10(20000), np.log10(40000), 6)).tolist()
+    return cloud_of_tones_calibration_sound(duration, gain, freqs, .7)
 
 sound_calibration_functions = [
-    high_tones_calibration_sound,
+    low_cloud_70,
+    high_cloud_70,
 ]
 
 

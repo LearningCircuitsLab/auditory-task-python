@@ -417,7 +417,7 @@ class TwoAFC(Task):
                 low_amplitude_mean = high_amplitude_mean
                 # create the sound structure
                 high_mat, low_mat = cloud_of_tones_matrices(
-                    **self.sound_properties,
+                    **self.sound_properties_for_cot_mats,
                     high_prob=high_perc,
                     low_prob=low_perc,
                     high_amplitude_mean=high_amplitude_mean,
@@ -429,14 +429,14 @@ class TwoAFC(Task):
                     "low_tones": low_mat.to_dict(),
                 }
                 # calibrate the sound applying self.get_sound_gain to all values of the matrices
-                high_mat_calibrated = high_mat.applymap(
+                high_mat_calibrated = high_mat.map(
                     lambda db: self.get_sound_gain(
                         self.speaker,
                         db,
                         "high_tones_calibration_sound",
                         )
                 )
-                low_mat_calibrated = low_mat.applymap(
+                low_mat_calibrated = low_mat.map(
                     lambda db: self.get_sound_gain(
                         self.speaker,
                         db,
@@ -445,8 +445,8 @@ class TwoAFC(Task):
                 )
                 # generate the sound
                 sound = sound_matrix_to_sound(
-                    pd.concat([high_mat_calibrated, low_mat_calibrated], axis=1),
-                    **self.sound_properties,
+                    pd.concat([high_mat_calibrated, low_mat_calibrated], axis=0),
+                    **self.sound_properties_for_sound_making,
                 )
 
                 # add the sound to manager so it is accessible by the softcode functions
@@ -467,12 +467,16 @@ class TwoAFC(Task):
         ).round(0).tolist()
         low_freq_list = list_of_frequencies[: int(self.settings.number_of_frequencies)]
         high_freq_list = list_of_frequencies[-int(self.settings.number_of_frequencies) :]
-        self.sound_properties = {
-            "sample_rate": self.settings.sample_rate,
+        self.sound_properties_for_cot_mats = {
             "duration": self.settings.sound_duration,
             "high_freq_list": high_freq_list,
             "low_freq_list": low_freq_list,
             "amplitude_std": self.settings.amplitude_std,
+            "subduration": self.settings.tone_duration,
+            "suboverlap": self.settings.tone_overlap,
+        }
+        self.sound_properties_for_sound_making = {
+            "sample_rate": self.settings.sample_rate,
             "subduration": self.settings.tone_duration,
             "suboverlap": self.settings.tone_overlap,
             "ramp_time": self.settings.tone_ramp_time,
