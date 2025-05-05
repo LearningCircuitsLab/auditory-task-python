@@ -280,6 +280,7 @@ def cloud_of_tones_matrices(
     amplitude_std: float,
     subduration: float,
     suboverlap: float,
+    ambiguous_beginning_time: float = 0.0,
 ):
     """
     Generate a cloud of overlapping tones
@@ -295,6 +296,8 @@ def cloud_of_tones_matrices(
         amplitude_std (float): Standard deviation of amplitude values in dB
         subduration (float): Duration of each tone in seconds
         suboverlap (float): Overlap between consecutive tones in seconds
+        ambiguous_beginning_time (float): Time in seconds that all possible tones are played
+            at the beginning of the sound (default is 0.0)
 
     Returns:
         pd.DataFrame: High tones sound matrix (frequencies x timebins)
@@ -310,17 +313,26 @@ def cloud_of_tones_matrices(
         raise ValueError(
             "Duration and subduration/suboverlap ratio might not make sense"
         )
+
+    # Generate an ambiguous beginning of the sound
+    ambiguous_timebins = int(np.floor(ambiguous_beginning_time / subduration)) + 1
     
     # Generate high and low tone matrices
     high_tones_mat, _ = generate_tone_matrix(
         high_freq_list, number_of_timebins, high_prob
     )
+    # Add the ambiguous beginning time to the high tones matrix
+    if ambiguous_beginning_time > 0:
+        high_tones_mat.iloc[:, :ambiguous_timebins] = 1
+    # Add amplitude to the high tones matrix
     high_sound_mat = add_amplitude_to_sound_matrix(
         high_tones_mat, high_amplitude_mean, amplitude_std
     )
     low_tones_mat, _ = generate_tone_matrix(
         low_freq_list, number_of_timebins, low_prob
     )
+    if ambiguous_beginning_time > 0:
+        low_tones_mat.iloc[:, :ambiguous_timebins] = 1
     low_sound_mat = add_amplitude_to_sound_matrix(
         low_tones_mat, low_amplitude_mean, amplitude_std
     )

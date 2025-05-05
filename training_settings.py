@@ -157,6 +157,7 @@ class TrainingSettings(Training):
         self.settings.top_amplitude_mean = 70
         self.settings.bottom_amplitude_mean = 60
         self.settings.amplitude_std = 2
+        self.settings.ambiguous_beginning_time = 0.05
 
     def update_training_settings(self) -> None:
         """
@@ -256,6 +257,7 @@ class TrainingSettings(Training):
                 "top_amplitude_mean",
                 "bottom_amplitude_mean",
                 "amplitude_std",
+                "ambiguous_beginning_time",
             ],
             "Hide": [
                 "trial_sides",
