@@ -1,11 +1,12 @@
 import random
 
 import numpy as np
+import pandas as pd
 from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
                                              get_right_bias, get_sound_stats)
 from village.classes.task import Event, Output, Task
 
-from sound_functions import cloud_of_tones
+from sound_functions import cloud_of_tones_matrices, sound_matrix_to_sound, speaker_dict
 
 
 class TwoAFC(Task):
@@ -100,6 +101,8 @@ class TwoAFC(Task):
         self.get_sound_from_settings()
         # create a variable in manager to store the sound
         self.twoAFC_sound = None
+        # find the speaker that this system is using
+        self.speaker = speaker_dict(self.settings.speaker_name)
 
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
@@ -406,12 +409,14 @@ class TwoAFC(Task):
                     self.settings.bottom_amplitude_mean,
                     self.settings.top_amplitude_mean,
                 )
-                low_amplitude_mean = random.uniform(
-                    self.settings.bottom_amplitude_mean,
-                    self.settings.top_amplitude_mean,
-                )
-                # create the sound
-                sound, high_mat, low_mat = cloud_of_tones(
+                # low_amplitude_mean = random.uniform(
+                #     self.settings.bottom_amplitude_mean,
+                #     self.settings.top_amplitude_mean,
+                # )
+                # same as high to not confuse the mouse
+                low_amplitude_mean = high_amplitude_mean
+                # create the sound structure
+                high_mat, low_mat = cloud_of_tones_matrices(
                     **self.sound_properties,
                     high_prob=high_perc,
                     low_prob=low_perc,
@@ -423,6 +428,26 @@ class TwoAFC(Task):
                     "high_tones": high_mat.to_dict(),
                     "low_tones": low_mat.to_dict(),
                 }
+                # calibrate the sound applying self.get_sound_gain to all values of the matrices
+                high_mat_calibrated = high_mat.applymap(
+                    lambda db: self.get_sound_gain(
+                        self.speaker,
+                        db,
+                        "high_tones_calibration_matrix",
+                        )
+                )
+                low_mat_calibrated = low_mat.applymap(
+                    lambda db: self.get_sound_gain(
+                        self.speaker,
+                        db,
+                        "low_tones_calibration_matrix",
+                        )
+                )
+                # generate the sound
+                sound = sound_matrix_to_sound(
+                    pd.concat([high_mat_calibrated, low_mat_calibrated], axis=1),
+                    **self.sound_properties,
+                )
 
                 # add the sound to manager so it is accessible by the softcode functions
                 self.twoAFC_sound = sound
