@@ -106,7 +106,7 @@ class TrainingSettings(Training):
         self.settings.time_to_auto_reward = 120
         self.settings.initial_large_reward = True
         # time the mouse needs to wait in the center port in 2AFC (in seconds)
-        self.settings.holding_response_time_min = 0.03
+        self.settings.holding_response_time_min = 0.05
         self.settings.holding_response_time_max = 0.5
         self.settings.holding_response_time_step = 0.001
         self.settings.holding_response_time = self.settings.holding_response_time_min

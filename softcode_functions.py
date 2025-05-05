@@ -1,13 +1,18 @@
 from village.devices.sound_device import sound_device
-from village.manager import manager
 from village.settings import settings
 from sound_functions import tone_generator
 import numpy as np
+import village.manager.task as task
+
+
+def function1():
+    # stop sound
+    sound_device.stop()
 
 
 def function2():
     # load the sound loaded in manager
-    sound_device.load(right=manager.twoAFC_sound, left=None)
+    sound_device.load(right=task.twoAFC_sound, left=None)
 
 
 def function3():

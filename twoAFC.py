@@ -60,7 +60,13 @@ class TwoAFC(Task):
             self.punish_condition = "stimulus_state"
 
         # determine the initial holding time for the center port
+        # Total holding time
         self.time_to_hold_response = self.settings.holding_response_time
+        # Remaining holding time
+        self.remaining_holding_time = self.time_to_hold_response - self.settings.holding_response_time_min
+        # If it is 0 or negative, set it to something small
+        if self.remaining_holding_time <= 0:
+            self.remaining_holding_time = 0.001
 
         # if doing multisensory, set the modality to random and generate a block
         if self.settings.stimulus_modality == "multisensory":
@@ -127,7 +133,9 @@ class TwoAFC(Task):
             (
                 Output.PWM2,
                 int(self.settings.middle_port_light_intensity * 255),
-            )
+            ),
+            # stop the sound if it is playing
+            Output.SoftCode1,
         ]
 
         # define the modality of the stimulus
@@ -158,14 +166,25 @@ class TwoAFC(Task):
         )
 
         # 'hold_center_port' state that waits for the mouse to hold the center port
+        # the minimum time is defined in the settings
         self.bpod.add_state(
             state_name="hold_center_port",
-            state_timer=self.time_to_hold_response,
+            state_timer=self.settings.time_to_hold_response_min,
             state_change_conditions={
                 Event.Port2Out: "ready_to_initiate",
-                Event.Tup: "stimulus_state",
+                Event.Tup: "hold_while_stimulus",
             },
             output_actions=[],
+        )
+        # TODO: implement another punishment if early time out
+        self.bpod.add_state(
+            state_name="hold_while_stimulus",
+            state_timer=self.remaining_holding_time,
+            state_change_conditions={
+                Event.Port2Out: "ready_to_initiate",
+                Event.Tup: "stimulus_state"
+            },
+            output_actions=self.hold_while_stimulus_state_output,
         )
 
         self.bpod.add_state(
@@ -257,6 +276,12 @@ class TwoAFC(Task):
             )
             self.time_to_hold_response = min(
                 new_holding_time, self.settings.holding_response_time_max
+            )
+            new_remaining_holding_time = (
+                self.time_to_hold_response - self.settings.holding_response_time_min
+            )
+            self.remaining_holding_time = max(
+                new_remaining_holding_time, 0.001
             )
 
         # update the list of the last 15 trials for the anti-bias
@@ -350,8 +375,8 @@ class TwoAFC(Task):
                     self.correct_brightness,
                     self.incorrect_brightness,
                 )
-                # set the output of the stimulus state
-                self.stimulus_state_output = [
+                # set the output of the stimulus states
+                self.hold_while_stimulus_state_output = [
                     (
                         self.correct_port_ID,
                         int(self.correct_brightness * 255),
@@ -361,6 +386,7 @@ class TwoAFC(Task):
                         int(self.incorrect_brightness * 255),
                     ),
                 ]
+                self.stimulus_state_output = self.hold_while_stimulus_state_output
             case "auditory":
                 # dominant frequency "low" or "high"
                 dominant_freq = self.auditory_contingency[self.this_trial_side]
@@ -400,11 +426,13 @@ class TwoAFC(Task):
                 }
 
                 # add the sound to manager so it is accessible by the softcode functions
-                manager.twoAFC_sound = sound
+                self.twoAFC_sound = sound
                 # load the sound to the Bpod in the ready_to_initiate state
                 self.ready_to_initiate_output.append(Output.SoftCode2)
                 # play the sound on the stimulus state
-                self.stimulus_state_output = [Output.SoftCode3]
+                self.hold_while_stimulus_state_output = [Output.SoftCode3]
+                # the sound plays if not stopped
+                self.stimulus_state_output = []
 
     
     def get_sound_from_settings(self) -> None:
@@ -433,7 +461,6 @@ class TwoAFC(Task):
         You can access the trial information in self.trial_data
         """
         # get the side port that the mouse poked first
-        # TODO: test me!!!!!!
         first_poke = self.first_poke_after_stimulus_state()
         # check if the mouse poked the correct port
         if first_poke == "Port1In" and self.this_trial_side == "left":
@@ -447,7 +474,7 @@ class TwoAFC(Task):
         stim_state_array = self.trial_data["STATE_stimulus_state_START"]
         if len(stim_state_array) == 0:
             return None
-        start_time = min(stim_state_array)
+        start_time = max(stim_state_array)
         # check if the keys are in the dict
         if "Port1In" in self.trial_data.keys():
             port1_in = self.trial_data["Port1In"]
