@@ -106,7 +106,7 @@ class TrainingSettings(Training):
         self.settings.time_to_auto_reward = 120
         self.settings.initial_large_reward = True
         # time the mouse needs to wait in the center port in 2AFC (in seconds)
-        self.settings.holding_response_time_min = 0.03
+        self.settings.holding_response_time_min = 0.05
         self.settings.holding_response_time_max = 0.5
         self.settings.holding_response_time_step = 0.001
         self.settings.holding_response_time = self.settings.holding_response_time_min
@@ -149,14 +149,14 @@ class TrainingSettings(Training):
         self.settings.sample_rate = settings.get("SAMPLERATE")
         self.settings.sound_duration = 0.5
         self.settings.lowest_frequency = 5000
-        self.settings.highest_frequency = 20000
+        self.settings.highest_frequency = 40000
         self.settings.number_of_frequencies = 6
         self.settings.tone_duration = 0.03
         self.settings.tone_overlap = 0.01
         self.settings.tone_ramp_time = 0.005
         self.settings.top_amplitude_mean = 70
         self.settings.bottom_amplitude_mean = 60
-        self.settings.amplitude_std = 3
+        self.settings.amplitude_std = 2
 
     def update_training_settings(self) -> None:
         """

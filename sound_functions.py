@@ -2,6 +2,12 @@ import numpy as np
 import pandas as pd
 
 
+# dicctionary to get the speaker number for each setup
+speaker_dict = {
+    "village01": 1,
+}
+
+
 def tone_generator(time, ramp_time, amplitude, frequency):
     """
     Generate a single tone with ramping
@@ -262,7 +268,7 @@ def generate_tone_matrix(frequencies, n_timebins, total_probability):
     return df, individual_probability
 
 
-def cloud_of_tones(
+def cloud_of_tones_matrices(
     sample_rate: int,
     duration: float,
     high_freq_list: list,
@@ -294,9 +300,8 @@ def cloud_of_tones(
         ramp_time (float): Ramp up/down time in seconds
 
     Returns:
-        np.ndarray: Generated sound array
-        pd.DataFrame: High tones sound matrix (frequencies x timebins) with amplitude values
-        pd.DataFrame: Low tones sound matrix (frequencies x timebins) with amplitude values
+        pd.DataFrame: High tones sound matrix (frequencies x timebins)
+        pd.DataFrame: Low tones sound matrix (frequencies x timebins)
     """
     # Validate inputs
     non_overlap = subduration - suboverlap
@@ -323,8 +328,31 @@ def cloud_of_tones(
         low_tones_mat, low_amplitude_mean, amplitude_std
     )
 
+    return high_sound_mat, low_sound_mat
+
+
+def sound_matrix_to_sound(
+    sound_matrix: pd.DataFrame,
+    sample_rate: int,
+    subduration: float,
+    suboverlap: float,
+    ramp_time: float,
+):
+    """
+    Transform a sound matrix into a sound array
+
+    Args:
+        sound_matrix (pd.DataFrame): Matrix of amplitude as values and frequencies as index
+        sample_rate (int): Sample rate in Hz
+        subduration (float): Duration of each tone in seconds
+        suboverlap (float): Overlap between consecutive tones in seconds
+        ramp_time (float): Ramp up/down time in seconds
+
+    Returns:
+        np.ndarray: Generated sound array
+    """
     # Generate a sound array for each frequency
-    freqs_sounds = pd.concat([high_sound_mat, low_sound_mat]).apply(
+    freqs_sounds = sound_matrix.apply(
         generate_frequency_sound,
         axis=1,
         args=(
@@ -335,18 +363,16 @@ def cloud_of_tones(
         )
     )
 
-    cot = np.sum(freqs_sounds.values, axis=0)
+    # Concatenate all sounds into a single sound array
+    return np.sum(freqs_sounds.values, axis=0)
     
-
-    return cot, high_sound_mat, low_sound_mat
-
 
 def generate_frequency_sound(row, sample_rate, subduration, suboverlap, ramp_time):
     """
     Generate a sound array for a given frequency
 
     Args:
-        row (pd.Series): Row of a DataFrame with time bins as index
+        row (pd.Series): Row of a DataFrame with time bins as index, and amplitude as values
         sample_rate (int): Sample rate in Hz
         subduration (float): Duration of each tone in seconds
         suboverlap (float): Overlap between consecutive tones in seconds
@@ -370,12 +396,10 @@ def generate_frequency_sound(row, sample_rate, subduration, suboverlap, ramp_tim
     # Generate tones and concatenate them
     for i in range(len(row)):
         if row.iloc[i] > 0:
-            # TODO: convert decibels to amplitude
-            amplitude = 0.05
             sound[idx[i] : idx[i] + tone_length] += tone_generator(
                 total_time_steps[idx[i] : idx[i] + tone_length],
                 ramp_time,
-                amplitude,
+                row.iloc[i],
                 row.name,
             )
     
