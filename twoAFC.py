@@ -102,7 +102,7 @@ class TwoAFC(Task):
         # create a variable in manager to store the sound
         self.twoAFC_sound = None
         # find the speaker that this system is using
-        self.speaker = speaker_dict(self.settings.speaker_name)
+        self.speaker = speaker_dict(self.system_name)
 
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
