@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from village import settings
+from village.settings import settings
 
 
 # dicctionary to get the speaker number for each setup
@@ -436,23 +436,23 @@ def cloud_of_tones_calibration_sound(duration: float, gain: float, freqs: list, 
     return sound
 
 
-def low_cloud_70(duration: float, gain: float) -> np.ndarray:
+def low_cloud_50(duration: float, gain: float) -> np.ndarray:
     """
-    Generate a sound with low tones with 70% probability
+    Generate a sound with low tones with 50% probability
     """
     freqs = np.round(np.logspace(np.log10(5000), np.log10(10000), 6)).tolist()
-    return cloud_of_tones_calibration_sound(duration, gain, freqs, .7)
+    return cloud_of_tones_calibration_sound(duration, gain, freqs, .5)
 
-def high_cloud_70(duration: float, gain: float) -> np.ndarray:
+def high_cloud_50(duration: float, gain: float) -> np.ndarray:
     """
-    Generate a sound with high tones with 70% probability
+    Generate a sound with high tones with 50% probability
     """
     freqs = np.round(np.logspace(np.log10(20000), np.log10(40000), 6)).tolist()
-    return cloud_of_tones_calibration_sound(duration, gain, freqs, .7)
+    return cloud_of_tones_calibration_sound(duration, gain, freqs, .5)
 
 sound_calibration_functions = [
-    low_cloud_70,
-    high_cloud_70,
+    low_cloud_50,
+    high_cloud_50,
 ]
 
 

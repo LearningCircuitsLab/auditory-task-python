@@ -25,7 +25,7 @@ def function10():
     # create a loud noise
     duration = 5
     ramptime = 0.05
-    amplitude = 0.15
+    amplitude = 0.05
     sample_rate = settings.get("SAMPLERATE")
     frequency = 10000
     # get the time steps
@@ -33,7 +33,7 @@ def function10():
     total_time_steps = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     scary_sound = tone_generator(total_time_steps, ramptime, amplitude, frequency)
     # load the sound loaded in manager
-    sound_device.load(right=scary_sound, left=None)
+    sound_device.load(right=scary_sound, left=scary_sound)
     # play the sound
     sound_device.play()
 
@@ -42,7 +42,7 @@ def function9():
     # create a loud noise
     duration = 5
     ramptime = 0.05
-    amplitude = 0.15
+    amplitude = 0.05
     sample_rate = settings.get("SAMPLERATE")
     frequency = 5000
     # get the time steps
@@ -50,7 +50,7 @@ def function9():
     total_time_steps = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     scary_sound = tone_generator(total_time_steps, ramptime, amplitude, frequency)
     # load the sound loaded in manager
-    sound_device.load(right=scary_sound, left=None)
+    sound_device.load(right=scary_sound, left=scary_sound)
     # play the sound
     sound_device.play()
 
@@ -59,7 +59,7 @@ def function8():
     # create a loud noise
     duration = 5
     ramptime = 0.05
-    amplitude = 0.15
+    amplitude = 0.05
     sample_rate = settings.get("SAMPLERATE")
     frequency = 1000
     # get the time steps
@@ -67,7 +67,7 @@ def function8():
     total_time_steps = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     scary_sound = tone_generator(total_time_steps, ramptime, amplitude, frequency)
     # load the sound loaded in manager
-    sound_device.load(right=scary_sound, left=None)
+    sound_device.load(right=scary_sound, left=scary_sound)
     # play the sound
     sound_device.play()
 
@@ -76,7 +76,7 @@ def function11():
     # create a loud noise
     duration = 5
     ramptime = 0.05
-    amplitude = 0.15
+    amplitude = 0.05
     sample_rate = settings.get("SAMPLERATE")
     frequency = 20000
     # get the time steps
@@ -84,7 +84,7 @@ def function11():
     total_time_steps = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     scary_sound = tone_generator(total_time_steps, ramptime, amplitude, frequency)
     # load the sound loaded in manager
-    sound_device.load(right=scary_sound, left=None)
+    sound_device.load(right=scary_sound, left=scary_sound)
     # play the sound
     sound_device.play()
 
@@ -93,7 +93,7 @@ def function12():
     # create a loud noise
     duration = 5
     ramptime = 0.05
-    amplitude = 0.15
+    amplitude = 0.05
     sample_rate = settings.get("SAMPLERATE")
     frequency = 40000
     # get the time steps
@@ -101,7 +101,7 @@ def function12():
     total_time_steps = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     scary_sound = tone_generator(total_time_steps, ramptime, amplitude, frequency)
     # load the sound loaded in manager
-    sound_device.load(right=scary_sound, left=None)
+    sound_device.load(right=scary_sound, left=scary_sound)
     # play the sound
     sound_device.play()
 
