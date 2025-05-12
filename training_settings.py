@@ -327,7 +327,7 @@ class TrainingSettings(Training):
         # after 3 consecutive days with over 750 trials and over 90% performance
 
         df_with_day = self.df.copy()
-        df_with_day["year_month_day"] = self.df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
+        df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
         total_days = df_with_day[df_with_day.current_training_stage == self.settings.current_training_stage].year_month_day.nunique()
 
         if total_days >= 3:
@@ -345,8 +345,8 @@ class TrainingSettings(Training):
                 for day in df_with_day.year_month_day.unique()[-n_days:]
             ]
             previous_n_trials = [
-                utils.get_day_number_of_trials(self.df, day)
-                for day in self.df.year_month_day.unique()[-n_days:]
+                utils.get_day_number_of_trials(df_with_day, day)
+                for day in df_with_day.year_month_day.unique()[-n_days:]
             ]
             if all(
                 [
