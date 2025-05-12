@@ -1,6 +1,5 @@
 import numpy as np
-from lecilab_behavior_analysis.utils import (get_session_number_of_trials,
-                                             get_session_performance)
+import lecilab_behavior_analysis.utils as utils
 from village.classes.training import Training
 from village.log import log
 from village.settings import settings
@@ -39,7 +38,7 @@ Progression rules:
 - Waiting time in the center port keeps increasing to a limit during TwoAFC.
   This is implemented in the task, but parameters for how to do this are here.
 - Animals move to the hard version of TwoAFC visual after after 3 consecutive 
-  sessions with over 350 trials and with over 90% performance.
+  days with over 750 trials and with over 90% performance.
 - Animals move to auditory version when they complete over 1500 trials on
   the hard version of the visual task.
 - Animals move to the hard version of the auditory task is the same as the
@@ -68,7 +67,7 @@ class TrainingSettings(Training):
 
     The following variables are needed:
     - self.next_task
-    - self.refractary_period
+    - self.refractory_period
     - self.minimum_duration
     - self.maximum_duration
     In addition to these variables, all the necessary variables to modify the state
@@ -91,7 +90,7 @@ class TrainingSettings(Training):
         # that runs on Traning Village
         self.settings.next_task = "Habituation"
         self.settings.current_training_stage = "Habituation"
-        self.settings.refractary_period = 2*60*60 # 2 hours
+        self.settings.refractory_period = 2*60*60 # 2 hours
         self.settings.minimum_duration = 10*60 # 10 minutes
         self.settings.maximum_duration = 30*60 # 30 minutes
 
@@ -303,7 +302,7 @@ class TrainingSettings(Training):
             # increase min time and refractory period (4 hours)
             self.increase_min_time_and_refractory_period(
                 minimum_duration_max=20*60,
-                refractary_period_max=4*60*60,
+                refractory_period_max=4*60*60,
                 maximum_duration_max=40*60,
             )
 
@@ -325,35 +324,36 @@ class TrainingSettings(Training):
         TwoAFC easy to TwoAFC hard. Equal for both modalities and multisensory.
         """
         # logic to promote the animal to the hard training stage:
-        # after 3 consecutive sessions with over 350 trials and over 90% performance
-        # find the last current training stage
+        # after 3 consecutive days with over 750 trials and over 90% performance
 
-        total_sessions = self.df[self.df.current_training_stage == self.settings.current_training_stage].session.nunique()
+        df_with_day = self.df.copy()
+        df_with_day["year_month_day"] = self.df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
+        total_days = df_with_day[df_with_day.current_training_stage == self.settings.current_training_stage].year_month_day.nunique()
 
-        if total_sessions >= 3:
+        if total_days >= 3:
             self.increase_min_time_and_refractory_period(
                 minimum_duration_max=30*60,
-                refractary_period_max=6*60*60,
+                refractory_period_max=6*60*60,
                 maximum_duration_max=50*60,
             )
 
-        n_sessions = 3
+        n_days = 3
         performance_threshold = 0.9
-        if total_sessions >= n_sessions:
+        if total_days >= n_days:
             previous_performances = [
-                get_session_performance(self.df, session)
-                for session in self.df.session.unique()[-n_sessions:]
+                utils.get_day_performance(df_with_day, day)
+                for day in df_with_day.year_month_day.unique()[-n_days:]
             ]
             previous_n_trials = [
-                get_session_number_of_trials(self.df, session)
-                for session in self.df.session.unique()[-n_sessions:]
+                utils.get_day_number_of_trials(self.df, day)
+                for day in self.df.year_month_day.unique()[-n_days:]
             ]
             if all(
                 [
                     performance > performance_threshold
                     for performance in previous_performances
                 ]
-            ) and all([n_trials > 350 for n_trials in previous_n_trials]):
+            ) and all([n_trials > 750 for n_trials in previous_n_trials]):
                 # change the trial difficulty
                 self.settings.easy_trials_on = True
                 self.settings.medium_trials_on = True
@@ -380,19 +380,19 @@ class TrainingSettings(Training):
         This method checks if the animal is ready to get promoted from
         TwoAFC visual hard to TwoAFC auditory easy.
         """
-        # logic to promote the animal to the auditory training stage:
-        # after 1500 trials in the hard visual training stage,
-        # with no performance requirements
-        total_trials = self.df[
-            self.df.current_training_stage == "TwoAFC_visual_hard"
-        ].shape[0]
-        if total_trials >= 1500:
-            self.settings.stimulus_modality = "auditory"
-            self.settings.current_training_stage = "TwoAFC_auditory_easy"
-            self.settings.easy_trials_on = True
-            self.settings.medium_trials_on = False
-            self.settings.hard_trials_on = False
-            self.promotion_alarm()
+        # # logic to promote the animal to the auditory training stage:
+        # # after 1500 trials in the hard visual training stage,
+        # # with no performance requirements
+        # total_trials = self.df[
+        #     self.df.current_training_stage == "TwoAFC_visual_hard"
+        # ].shape[0]
+        # if total_trials >= 1500:
+        #     self.settings.stimulus_modality = "auditory"
+        #     self.settings.current_training_stage = "TwoAFC_auditory_easy"
+        #     self.settings.easy_trials_on = True
+        #     self.settings.medium_trials_on = False
+        #     self.settings.hard_trials_on = False
+        #     self.promotion_alarm()
 
         return None
 
@@ -433,7 +433,7 @@ class TrainingSettings(Training):
     def increase_min_time_and_refractory_period(
             self,
             minimum_duration_max = 2400,
-            refractary_period_max = 28800,
+            refractory_period_max = 28800,
             maximum_duration_max = 3600,
         ) -> None:
         # increase the min time of the session 1 minutes for each session
@@ -443,8 +443,8 @@ class TrainingSettings(Training):
         )
         # increase the refractory period 5 minutes for each session with
         # a limit
-        self.settings.refractary_period = min(
-            self.settings.refractary_period + 5*60, refractary_period_max
+        self.settings.refractory_period = min(
+            self.settings.refractory_period + 5*60, refractory_period_max
         )
         # increase the maximum duration 1 minutes for each session with
         # a limit
