@@ -13,7 +13,7 @@ def function1():
 
 def function2():
     # load the sound loaded in manager
-    sound_device.load(right=task.twoAFC_sound, left=None)
+    sound_device.load(right=task.twoAFC_sound, left=task.twoAFC_sound)
 
 
 def function3():

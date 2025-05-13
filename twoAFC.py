@@ -453,7 +453,7 @@ class TwoAFC(Task):
                 self.twoAFC_sound = sound
                 # load the sound to the Bpod in the ready_to_initiate state
                 self.ready_to_initiate_output.append(Output.SoftCode2)
-                # play the sound on the stimulus state
+                # play the sound on the hold while stimulus state
                 self.hold_while_stimulus_state_output = [Output.SoftCode3]
                 # the sound plays if not stopped
                 self.stimulus_state_output = []
