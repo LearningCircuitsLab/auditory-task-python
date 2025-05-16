@@ -325,6 +325,11 @@ class TrainingSettings(Training):
         """
         # logic to promote the animal to the hard training stage:
         # after 3 consecutive days with over 750 trials and over 90% performance
+        # it also introduces punishment if performance is above 75% after 3 days
+        n_days = 3
+        promotion_performance_threshold = 0.9
+        promotion_ntrials_threshold = 750
+        punishment_performance_threshold = 0.75
 
         df_with_day = self.df.copy()
         df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
@@ -337,8 +342,6 @@ class TrainingSettings(Training):
                 maximum_duration_max=50*60,
             )
 
-        n_days = 3
-        performance_threshold = 0.9
         if total_days >= n_days:
             previous_performances = [
                 utils.get_day_performance(df_with_day, day)
@@ -348,12 +351,22 @@ class TrainingSettings(Training):
                 utils.get_day_number_of_trials(df_with_day, day)
                 for day in df_with_day.year_month_day.unique()[-n_days:]
             ]
+            # introduce punishment if conditions are met
             if all(
                 [
-                    performance > performance_threshold
+                    performance > punishment_performance_threshold
                     for performance in previous_performances
                 ]
-            ) and all([n_trials > 750 for n_trials in previous_n_trials]):
+            ):
+                self.settings.punishment = True
+                self.settings.punishment_time = 1
+            # check if the animal is ready to be promoted
+            if all(
+                [
+                    performance > promotion_performance_threshold
+                    for performance in previous_performances
+                ]
+            ) and all([n_trials > promotion_ntrials_threshold for n_trials in previous_n_trials]):
                 # change the trial difficulty
                 self.settings.easy_trials_on = True
                 self.settings.medium_trials_on = True
