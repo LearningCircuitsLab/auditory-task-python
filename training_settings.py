@@ -302,7 +302,7 @@ class TrainingSettings(Training):
             # increase min time and refractory period (4 hours)
             self.increase_min_time_and_refractory_period(
                 minimum_duration_max=20*60,
-                refractory_period_max=4*60*60,
+                refractory_period_max=3*60*60,
                 maximum_duration_max=40*60,
             )
 
@@ -337,8 +337,8 @@ class TrainingSettings(Training):
 
         if total_days >= 3:
             self.increase_min_time_and_refractory_period(
-                minimum_duration_max=30*60,
-                refractory_period_max=6*60*60,
+                minimum_duration_max=25*60,
+                refractory_period_max=4*60*60,
                 maximum_duration_max=50*60,
             )
 
