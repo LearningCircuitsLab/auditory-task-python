@@ -13,8 +13,6 @@ in any port. This stage is used to habituate the mouse to the task.
 TODO:
 - remove the water at the beginning after a few sessions
 - remove the auto water after 2 minutes
-- increase the minimum time
-- increase the inter-session time
 
 *Second stage is TwoAFC Task using visual stimuli.
 Here, center port lights up and after poking, both ports light up with an easy discrimination.
@@ -38,7 +36,7 @@ Progression rules:
 - Waiting time in the center port keeps increasing to a limit during TwoAFC.
   This is implemented in the task, but parameters for how to do this are here.
 - Animals move to the hard version of TwoAFC visual after after 3 consecutive 
-  days with over 750 trials and with over 90% performance.
+  days with over 500 trials and with over 85% performance.
 - Animals move to auditory version when they complete over 1500 trials on
   the hard version of the visual task.
 - Animals move to the hard version of the auditory task is the same as the
