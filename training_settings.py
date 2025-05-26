@@ -324,12 +324,12 @@ class TrainingSettings(Training):
         TwoAFC easy to TwoAFC hard. Equal for both modalities and multisensory.
         """
         # logic to promote the animal to the hard training stage:
-        # after 3 consecutive days with over 750 trials and over 90% performance
-        # it also introduces punishment if performance is above 75% after 3 days
+        # after 3 consecutive days with over 500 trials and over 85% performance
+        # it also introduces punishment if performance is above 70% after 3 days
         n_days = 3
-        promotion_performance_threshold = 0.9
-        promotion_ntrials_threshold = 750
-        punishment_performance_threshold = 0.75
+        promotion_performance_threshold = 0.85
+        promotion_ntrials_threshold = 500
+        punishment_performance_threshold = 0.70
 
         df_with_day = self.df.copy()
         df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
