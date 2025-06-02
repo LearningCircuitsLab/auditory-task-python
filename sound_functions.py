@@ -450,9 +450,21 @@ def high_cloud_50(duration: float, gain: float) -> np.ndarray:
     freqs = np.round(np.logspace(np.log10(20000), np.log10(40000), 6)).tolist()
     return cloud_of_tones_calibration_sound(duration, gain, freqs, .5)
 
+def one_thousand_hz_calibration(duration: float, gain: float) -> np.ndarray:
+    """
+    Generate a sound with 1000 Hz tone
+    """
+    # genearte a single tone without using the cloud of tones function
+    sample_rate = settings.get("SAMPLERATE")
+    time = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
+    frequency = 1000
+    sound = tone_generator(time, ramp_time=0.005, amplitude=gain, frequency=frequency)
+    return sound
+
 sound_calibration_functions = [
     low_cloud_50,
     high_cloud_50,
+    one_thousand_hz_calibration,
 ]
 
 

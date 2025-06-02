@@ -433,14 +433,14 @@ class TwoAFC(Task):
                     lambda db: self.get_sound_gain(
                         self.speaker,
                         db,
-                        "high_tones_calibration_sound",
+                        "one_thousand_hz_calibration",
                         )
                 )
                 low_mat_calibrated = low_mat.map(
                     lambda db: self.get_sound_gain(
                         self.speaker,
                         db,
-                        "low_tones_calibration_sound",
+                        "one_thousand_hz_calibration",
                         )
                 )
                 # generate the sound
@@ -448,6 +448,8 @@ class TwoAFC(Task):
                     pd.concat([high_mat_calibrated, low_mat_calibrated], axis=0),
                     **self.sound_properties_for_sound_making,
                 )
+
+                # TODO: implement the relative to 1000 calibration
 
                 # add the sound to manager so it is accessible by the softcode functions
                 self.twoAFC_sound = sound
