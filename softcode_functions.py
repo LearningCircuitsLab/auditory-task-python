@@ -2,7 +2,7 @@ from village.devices.sound_device import sound_device
 from village.settings import settings
 from sound_functions import tone_generator
 import numpy as np
-from village.manager import get_task
+from village.manager import get_task, manager
 
 task = get_task()
 
@@ -13,7 +13,7 @@ def function1():
 
 def function2():
     # load the sound loaded in manager
-    sound_device.load(right=task.twoAFC_sound, left=task.twoAFC_sound)
+    sound_device.load(left=manager.task.twoAFC_sound, right=manager.task.twoAFC_sound)
 
 
 def function3():

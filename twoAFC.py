@@ -430,14 +430,14 @@ class TwoAFC(Task):
                 }
                 # calibrate the sound applying self.get_sound_gain to all values of the matrices
                 high_mat_calibrated = high_mat.map(
-                    lambda db: self.get_sound_gain(
+                    lambda db: self.sound_calibration.get_sound_gain(
                         self.speaker,
                         db,
                         "one_thousand_hz_calibration",
                         )
                 )
                 low_mat_calibrated = low_mat.map(
-                    lambda db: self.get_sound_gain(
+                    lambda db: self.sound_calibration.get_sound_gain(
                         self.speaker,
                         db,
                         "one_thousand_hz_calibration",
