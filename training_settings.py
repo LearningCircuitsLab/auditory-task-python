@@ -391,19 +391,19 @@ class TrainingSettings(Training):
         This method checks if the animal is ready to get promoted from
         TwoAFC visual hard to TwoAFC auditory easy.
         """
-        # # logic to promote the animal to the auditory training stage:
-        # # after 1500 trials in the hard visual training stage,
-        # # with no performance requirements
-        # total_trials = self.df[
-        #     self.df.current_training_stage == "TwoAFC_visual_hard"
-        # ].shape[0]
-        # if total_trials >= 1500:
-        #     self.settings.stimulus_modality = "auditory"
-        #     self.settings.current_training_stage = "TwoAFC_auditory_easy"
-        #     self.settings.easy_trials_on = True
-        #     self.settings.medium_trials_on = False
-        #     self.settings.hard_trials_on = False
-        #     self.promotion_alarm()
+        # logic to promote the animal to the auditory training stage:
+        # after 1500 trials in the hard visual training stage,
+        # with no performance requirements
+        total_trials = self.df[
+            self.df.current_training_stage == "TwoAFC_visual_hard"
+        ].shape[0]
+        if total_trials >= 1500:
+            self.settings.stimulus_modality = "auditory"
+            self.settings.current_training_stage = "TwoAFC_auditory_easy"
+            self.settings.easy_trials_on = True
+            self.settings.medium_trials_on = False
+            self.settings.hard_trials_on = False
+            self.promotion_alarm()
 
         return None
 
