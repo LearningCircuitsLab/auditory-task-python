@@ -403,6 +403,8 @@ class TrainingSettings(Training):
             self.settings.easy_trials_on = True
             self.settings.medium_trials_on = False
             self.settings.hard_trials_on = False
+            self.settings.punishment = False
+            self.settings.anti_bias_on = True
             self.promotion_alarm()
 
         return None
