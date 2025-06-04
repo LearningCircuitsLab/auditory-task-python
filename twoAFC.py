@@ -139,6 +139,13 @@ class TwoAFC(Task):
             # stop the sound if it is playing
             Output.SoftCode1,
         ]
+        # keep the light on in the middle port while holding
+        self.hold_center_port_output = [
+            (
+                Output.PWM2,
+                int(self.settings.middle_port_light_intensity * 255),
+            )
+        ]
 
         # define the modality of the stimulus
         self.set_stimulus_modality()
@@ -176,7 +183,7 @@ class TwoAFC(Task):
                 Event.Port2Out: "ready_to_initiate",
                 Event.Tup: "hold_while_stimulus",
             },
-            output_actions=[],
+            output_actions=self.hold_while_stimulus_state_output,
         )
         # TODO: implement another punishment if early time out
         self.bpod.add_state(

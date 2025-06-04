@@ -98,7 +98,7 @@ class TrainingSettings(Training):
         self.settings.stimulus_modality = "visual"
         self.settings.stimulus_modality_block_size = 70
         # strength of the light in the middle port (0-1)
-        self.settings.middle_port_light_intensity = 0.2
+        self.settings.middle_port_light_intensity = 0.05
         # time that, in Habituation, the trial ends and reward is automatically delivered (in seconds)
         self.settings.time_to_auto_reward = 120
         self.settings.initial_large_reward = True
