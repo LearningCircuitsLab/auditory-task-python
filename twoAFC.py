@@ -146,6 +146,12 @@ class TwoAFC(Task):
                 int(self.settings.middle_port_light_intensity * 255),
             )
         ]
+        self.hold_while_stimulus_state_output = [
+            (
+                Output.PWM2,
+                int(self.settings.middle_port_light_intensity * 255),
+            )
+        ]
 
         # define the modality of the stimulus
         self.set_stimulus_modality()
@@ -183,7 +189,7 @@ class TwoAFC(Task):
                 Event.Port2Out: "ready_to_initiate",
                 Event.Tup: "hold_while_stimulus",
             },
-            output_actions=self.hold_while_stimulus_state_output,
+            output_actions=self.hold_center_port_output,
         )
         # TODO: implement another punishment if early time out
         self.bpod.add_state(
@@ -385,17 +391,17 @@ class TwoAFC(Task):
                     self.incorrect_brightness,
                 )
                 # set the output of the stimulus states
-                self.hold_while_stimulus_state_output = [
-                    (
-                        self.correct_port_ID,
-                        int(self.correct_brightness * 255),
-                    ),
-                    (
-                        self.incorrect_port_ID,
-                        int(self.incorrect_brightness * 255),
-                    ),
+                self.hold_while_stimulus_state_output.append(
+                    (self.correct_port_ID, int(self.correct_brightness * 255))
+                )
+                self.hold_while_stimulus_state_output.append(
+                    (self.incorrect_port_ID, int(self.incorrect_brightness * 255))
+                )
+                self.stimulus_state_output = [
+                    (self.correct_port_ID, int(self.correct_brightness * 255)),
+                    (self.incorrect_port_ID, int(self.incorrect_brightness * 255)),
                 ]
-                self.stimulus_state_output = self.hold_while_stimulus_state_output
+                
             case "auditory":
                 # dominant frequency "low" or "high"
                 dominant_freq = self.auditory_contingency[self.this_trial_side]
@@ -463,7 +469,7 @@ class TwoAFC(Task):
                 # load the sound to the Bpod in the ready_to_initiate state
                 self.ready_to_initiate_output.append(Output.SoftCode2)
                 # play the sound on the hold while stimulus state
-                self.hold_while_stimulus_state_output = [Output.SoftCode3]
+                self.hold_while_stimulus_state_output.append(Output.SoftCode3)
                 # the sound plays if not stopped
                 self.stimulus_state_output = []
 
