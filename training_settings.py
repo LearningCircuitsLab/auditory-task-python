@@ -333,12 +333,13 @@ class TrainingSettings(Training):
         df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
         total_days = df_with_day[df_with_day.current_training_stage == self.settings.current_training_stage].year_month_day.nunique()
 
-        if total_days >= 3:
-            self.increase_min_time_and_refractory_period(
-                minimum_duration_max=25*60,
-                refractory_period_max=4*60*60,
-                maximum_duration_max=50*60,
-            )
+        # TODO: change this back after the test!!!!!!
+        # if total_days >= 3:
+        #     self.increase_min_time_and_refractory_period(
+        #         minimum_duration_max=25*60,
+        #         refractory_period_max=4*60*60,
+        #         maximum_duration_max=50*60,
+        #     )
 
         if total_days >= n_days:
             previous_performances = [
@@ -419,7 +420,7 @@ class TrainingSettings(Training):
         total_trials = self.df[
             self.df.current_training_stage == "TwoAFC_auditory_hard"
         ].shape[0]
-        if total_trials >= 1500:
+        if total_trials >= 5000:
             self.settings.current_training_stage = "TwoAFC_multisensory_easy"
             self.settings.easy_trials_on = True
             self.settings.medium_trials_on = False

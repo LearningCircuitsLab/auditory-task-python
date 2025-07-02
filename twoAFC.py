@@ -436,6 +436,11 @@ class TwoAFC(Task):
                     high_amplitude_mean=high_amplitude_mean,
                     low_amplitude_mean=low_amplitude_mean,
                 )
+                # TODO: solved this in the calibration
+                # temporal solution for the calibration problem
+                # ensure the maximum value of the matrices is 79dB
+                high_mat = high_mat.clip(0, 79)
+                low_mat = low_mat.clip(0, 79)
                 # store the trial stimuli
                 self.trial_auditory_stimulus = {
                     "high_tones": high_mat.to_dict(),
