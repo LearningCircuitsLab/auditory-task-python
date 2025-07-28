@@ -83,3 +83,68 @@ plt.title("Cloud of Tones")
 plt.show()
 
 """
+"""
+import numpy as np
+from scipy.io.wavfile import write
+import matplotlib.pyplot as plt
+
+# Parameters
+fs = 44100  # Sampling frequency
+n_repeats = 10
+ramp_duration = 0.4  # seconds
+ramp_down_duration = 0.005  # seconds
+hold_duration = 0.595  # seconds
+total_duration = (ramp_duration + ramp_down_duration + hold_duration) * n_repeats
+
+# Amplitude scaling: dB = 20 * log10(A)
+amp_start = 10 ** ((20 - 70) / 20)  # ~0.01
+amp_end = 1.0  # corresponds to 70 dB SPL
+
+# Generate ramp + hold for one repetition
+n_ramp = int(fs * ramp_duration)
+n_hold = int(fs * hold_duration)
+n_ramp_down = int(fs * ramp_down_duration)
+
+# Linear amplitude ramp (in dB scale)
+ramp_amplitudes = np.linspace(amp_start, amp_end, n_ramp)
+hold_amplitudes = np.ones(n_hold) * amp_start
+ramp_down_amplitudes = np.linspace(amp_end, amp_start, n_ramp_down)
+
+# Create one cycle of noise
+noise_ramp = np.random.randn(n_ramp) * ramp_amplitudes
+noise_hold = np.random.randn(n_hold) * hold_amplitudes
+noise_ramp_down = np.random.randn(n_ramp_down) * ramp_down_amplitudes
+cycle = np.concatenate([noise_ramp, noise_ramp_down, noise_hold])
+
+# Repeat 10 times
+stimulus = np.tile(cycle, n_repeats)
+
+# Normalize to the 99.5th quantile to avoid clipping when saving
+stimulus /= np.quantile(np.abs(stimulus), 0.995)
+
+# Save to .wav file
+write("crescendo_stimulus.wav", fs, (stimulus * 32767).astype(np.int16))
+
+# Optional: Plot waveform
+time_axis = np.linspace(0, total_duration, len(stimulus))
+plt.plot(time_axis, stimulus, linewidth=0.5)
+plt.title("Crescendo Stimulus Waveform")
+plt.xlabel("Time (s)")
+plt.ylabel("Amplitude")
+# zoom in first second
+plt.xlim(0, .41)
+plt.tight_layout()
+plt.show()
+
+"""
+# #%%
+# from sound_functions import crescendo_looming_sound
+
+# sound = crescendo_looming_sound(
+#     amp_start=0.0001,
+#     amp_end=0.01,
+# )
+# # plot it
+# import matplotlib.pyplot as plt
+# plt.plot(sound[:100000])
+# plt.show()

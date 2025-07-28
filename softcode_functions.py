@@ -1,6 +1,6 @@
 from village.devices.sound_device import sound_device
 from village.settings import settings
-from sound_functions import tone_generator
+from sound_functions import tone_generator, crescendo_looming_sound
 import numpy as np
 from village.manager import get_task, manager
 
@@ -17,6 +17,24 @@ def function2():
 
 
 def function3():
+    # play the sound
+    sound_device.play()
+
+
+def function5():
+    amp_for_70dB = 0.01  # ~75 dB SPL
+    amp_for_20dB = 0.0001  # ?? dB SPL
+    # create a crescendo sound
+    crescendo_sound = crescendo_looming_sound(
+        amp_start=amp_for_20dB,
+        amp_end=amp_for_70dB,
+        ramp_duration=0.4,
+        ramp_down_duration=0.005,
+        hold_duration=0.595,
+        n_repeats=10,
+    )
+    # load the sound loaded in manager
+    sound_device.load(right=crescendo_sound, left=crescendo_sound)
     # play the sound
     sound_device.play()
 
