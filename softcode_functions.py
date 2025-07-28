@@ -22,7 +22,7 @@ def function3():
 
 
 def function5():
-    amp_for_70dB = 0.01  # ~75 dB SPL
+    amp_for_70dB = 0.05  # ~75 dB SPL
     amp_for_20dB = 0.0001  # ?? dB SPL
     # create a crescendo sound
     crescendo_sound = crescendo_looming_sound(
