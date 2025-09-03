@@ -110,12 +110,12 @@ class TrainingSettings(Training):
         # time the mouse has to respond (in seconds)
         self.settings.timer_for_response = 50
         # reward amount in ml to start with (in ml)
-        self.settings.reward_amount_ml = 5
+        self.settings.reward_amount_ml = 12
         # inter trial interval (in seconds)
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
         self.settings.punishment_time = 1  # in seconds
-        self.settings.iti = 1
+        self.settings.iti = 20
         # trial difficulties
         self.settings.easy_trials_on = True
         self.settings.medium_trials_on = False
@@ -128,17 +128,17 @@ class TrainingSettings(Training):
         # trial sides (e.g. ["left", "right"]). Left always before right, for the bias
         self.settings.trial_sides = ["left", "right"]
         # parameters associated with trial difficulties
-        self.settings.easy_light_intensity_difference = 5
+        self.settings.easy_light_intensity_difference = 6
         self.settings.easy_frequency_proportion = 98
-        self.settings.medium_light_intensity_difference = 2.5
+        self.settings.medium_light_intensity_difference = 4
         self.settings.medium_frequency_proportion = 82
-        self.settings.hard_light_intensity_difference = 1.25
+        self.settings.hard_light_intensity_difference = 2
         self.settings.hard_frequency_proportion = 66
         # basic parameters about the stimuli
         # how many possible intensities can the incorrect side port have (eg. 0.15 - 0.33)*
         # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
-        self.settings.side_port_wrong_intensities_extremes = [0.01, 0.2]
+        self.settings.side_port_wrong_intensities_extremes = [0.01, 0.1666]
         # contingency
         self.settings.frequency_associated_with_left_choice = "high"
         # parameters for the auditory stimuli
@@ -306,7 +306,7 @@ class TrainingSettings(Training):
 
         # has the animal completed 300 trials?
         total_trials = self.df.shape[0]
-        if total_trials >= 300:
+        if total_trials >= 150:
             self.settings.next_task = "TwoAFC"
             self.settings.current_training_stage = "TwoAFC_visual_easy"
             self.settings.stimulus_modality = "visual"
@@ -326,7 +326,7 @@ class TrainingSettings(Training):
         # it also introduces punishment if performance is above 70% after 3 days
         n_days = 3
         promotion_performance_threshold = 0.85
-        promotion_ntrials_threshold = 500
+        promotion_ntrials_threshold = 100
         punishment_performance_threshold = 0.70
 
         df_with_day = self.df.copy()
@@ -398,7 +398,7 @@ class TrainingSettings(Training):
         total_trials = self.df[
             self.df.current_training_stage == "TwoAFC_visual_hard"
         ].shape[0]
-        if total_trials >= 1500:
+        if total_trials >= 600:
             self.settings.stimulus_modality = "auditory"
             self.settings.current_training_stage = "TwoAFC_auditory_easy"
             self.settings.easy_trials_on = True
