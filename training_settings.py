@@ -115,6 +115,9 @@ class TrainingSettings(Training):
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
         self.settings.punishment_time = 1  # in seconds
+        # will it be punished for poking out of the center port early?
+        self.settings.early_poke_punishment = False
+        # time between trials (in seconds)
         self.settings.iti = 1
         # trial difficulties
         self.settings.easy_trials_on = True
