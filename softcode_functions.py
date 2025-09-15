@@ -1,6 +1,6 @@
 from village.devices.sound_device import sound_device
 from village.settings import settings
-from sound_functions import tone_generator, crescendo_looming_sound
+from sound_functions import tone_generator, crescendo_looming_sound, white_noise
 import numpy as np
 from village.manager import get_task, manager
 
@@ -18,6 +18,15 @@ def function2():
 
 def function3():
     # play the sound
+    sound_device.play()
+
+
+def function4():
+    # stop sound
+    sound_device.stop()
+    # create and play white noise of 1 second
+    noise = white_noise(duration=1.0, amplitude=0.02)
+    sound_device.load(right=noise, left=noise)
     sound_device.play()
 
 

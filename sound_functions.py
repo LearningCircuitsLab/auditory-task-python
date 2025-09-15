@@ -500,6 +500,12 @@ def crescendo_looming_sound(
     return stimulus
 
 
+def white_noise(duration: float, amplitude: float) -> np.ndarray:
+    fs = settings.get("SAMPLERATE")  # Sampling frequency
+    n_samples = int(fs * duration)
+    noise = np.random.randn(n_samples) * amplitude
+    return noise
+
 
 if __name__ == "__main__":
     # # Define frequencies
