@@ -25,7 +25,7 @@ def function4():
     # stop sound
     sound_device.stop()
     # create and play white noise of 1 second
-    noise = white_noise(duration=1.0, amplitude=0.05)
+    noise = white_noise(duration=1.0, amplitude=0.02)
     sound_device.load(right=noise, left=noise)
     sound_device.play()
 

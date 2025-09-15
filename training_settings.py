@@ -279,6 +279,7 @@ class TrainingSettings(Training):
             ],
             "stimulus_modality": ["visual", "auditory", "multisensory"],
             "punishment": [True, False],
+            "early_poke_punishment": [True, False],
             "anti_bias_on": [True, False],
             "easy_trials_on": [True, False],
             "medium_trials_on": [True, False],
