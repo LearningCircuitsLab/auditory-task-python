@@ -176,19 +176,19 @@ class TrainingSettings(Training):
             return None
 
         # decrease the reward amount for each session with more than 50 trials
-        match np.sum(self.df.session.value_counts() > 50):
-            case 0:
-                self.settings.reward_amount_ml = 5
-            case 1:
-                self.settings.reward_amount_ml = 4
-            case 2:
-                self.settings.reward_amount_ml = 3.5
-            case 3:
-                self.settings.reward_amount_ml = 3
-            case 4:
-                self.settings.reward_amount_ml = 2.5
-            case _:
-                self.settings.reward_amount_ml = 2
+        # match np.sum(self.df.session.value_counts() > 50):
+            # case 0:
+            #     self.settings.reward_amount_ml = 5
+            # case 1:
+            #     self.settings.reward_amount_ml = 4
+            # case 2:
+            #     self.settings.reward_amount_ml = 3.5
+            # case 3:
+            #     self.settings.reward_amount_ml = 3
+            # case 4:
+            #     self.settings.reward_amount_ml = 2.5
+            # case _:
+            #     self.settings.reward_amount_ml = 2
 
         # update the waiting time in the center port during TwoAFC
         if self.settings.next_task == "TwoAFC":
@@ -337,13 +337,12 @@ class TrainingSettings(Training):
         df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
         total_days = df_with_day[df_with_day.current_training_stage == self.settings.current_training_stage].year_month_day.nunique()
 
-        # TODO: change this back after the test!!!!!!
-        # if total_days >= 3:
-        #     self.increase_min_time_and_refractory_period(
-        #         minimum_duration_max=25*60,
-        #         refractory_period_max=4*60*60,
-        #         maximum_duration_max=50*60,
-        #     )
+        if total_days >= 3:
+            self.increase_min_time_and_refractory_period(
+                minimum_duration_max=25*60,
+                refractory_period_max=4*60*60,
+                maximum_duration_max=50*60,
+            )
 
         if total_days >= n_days:
             previous_performances = [
