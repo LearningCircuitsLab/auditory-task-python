@@ -58,6 +58,12 @@ class TwoAFC(Task):
         else:
             # if no punishment is used, let the mouse choose again
             self.punish_condition = "stimulus_state"
+        
+        # determine if poking out of the center port early will punish
+        if self.settings.early_poke_punishment:
+            self.early_poke_punish_condition = "punish_state"
+        else:
+            self.early_poke_punish_condition = "ready_to_initiate"
 
         # determine the initial holding time for the center port
         # Total holding time
@@ -152,6 +158,10 @@ class TwoAFC(Task):
                 int(self.settings.middle_port_light_intensity * 255),
             )
         ]
+        # define the output of the punish state
+        self.punish_condition_output = [
+            Output.SoftCode4,  # stop sound and play white noise
+        ]
 
         # define the modality of the stimulus
         self.set_stimulus_modality()
@@ -186,7 +196,7 @@ class TwoAFC(Task):
             state_name="hold_center_port",
             state_timer=self.settings.holding_response_time_min,
             state_change_conditions={
-                Event.Port2Out: "ready_to_initiate",
+                Event.Port2Out: self.early_poke_punish_condition,
                 Event.Tup: "hold_while_stimulus",
             },
             output_actions=self.hold_center_port_output,
@@ -196,7 +206,7 @@ class TwoAFC(Task):
             state_name="hold_while_stimulus",
             state_timer=self.remaining_holding_time,
             state_change_conditions={
-                Event.Port2Out: "ready_to_initiate",
+                Event.Port2Out: self.early_poke_punish_condition,
                 Event.Tup: "stimulus_state"
             },
             output_actions=self.hold_while_stimulus_state_output,
@@ -224,7 +234,7 @@ class TwoAFC(Task):
             state_name="punish_state",
             state_timer=self.settings.punishment_time,
             state_change_conditions={Event.Tup: "iti"},
-            output_actions=[],
+            output_actions=self.punish_condition_output,
         )
 
         # iti is the time that the mouse has to wait before the next trial
@@ -436,7 +446,7 @@ class TwoAFC(Task):
                     high_amplitude_mean=high_amplitude_mean,
                     low_amplitude_mean=low_amplitude_mean,
                 )
-                # TODO: solved this in the calibration
+                # TODO: solve this in the calibration
                 # temporal solution for the calibration problem
                 # ensure the maximum value of the matrices is 79dB
                 high_mat = high_mat.clip(0, 79)
