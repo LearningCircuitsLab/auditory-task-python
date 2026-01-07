@@ -4,7 +4,7 @@ import time
 import pandas as pd
 
 sys.path.append(".")
-from training_settings import TrainingSettings
+from training_protocol import TrainingProtocol
 from trial_plotter import TrialPlotter
 from twoAFC import TwoAFC
 from virtual_mouse import VirtualMouse
@@ -21,7 +21,7 @@ def main():
 
     # Create an instance of the task and get the default training settings
     tafc_task = TwoAFC()
-    training = TrainingSettings()
+    training = TrainingProtocol()
     training.default_training_settings()
     tafc_task.settings = training.settings
     tafc_task.settings.stimulus_modality = "visual"

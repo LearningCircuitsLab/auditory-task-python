@@ -1,4 +1,4 @@
-from village.classes.task import Event, Output, Task
+from village.custom_classes.task import Event, Output, Task
 from village.manager import manager
 
 

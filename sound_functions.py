@@ -521,7 +521,7 @@ if __name__ == "__main__":
         "ramp_time": 0.005,
         "high_amplitude_mean": 70,
         "low_amplitude_mean": 60,
-        "amplitude_std": 2,
+        "amplitude_std": 1,
         "high_freq_list": high_freq_list,
         "low_freq_list": low_freq_list,
         "subduration": 0.03,
