@@ -1,7 +1,7 @@
 import numpy as np
 import lecilab_behavior_analysis.utils as utils
-from village.classes.training import Training
-from village.log import log
+from village.custom_classes.training_protocol_base import TrainingProtocolBase
+from village.scripts.log import log
 from village.settings import settings
 
 """
@@ -48,7 +48,7 @@ Progression rules:
 """
 
 
-class TrainingSettings(Training):
+class TrainingProtocol(TrainingProtocolBase):
     """
     This class defines how the training protocol is going to be.
     This is, how variables change depending on different conditions (e.g. performance),
@@ -110,11 +110,11 @@ class TrainingSettings(Training):
         # time the mouse has to respond (in seconds)
         self.settings.timer_for_response = 50
         # reward amount in ml to start with (in ml)
-        self.settings.reward_amount_ml = 12
+        self.settings.reward_amount_ml = 3
         # inter trial interval (in seconds)
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
-        self.settings.punishment_time = 1  # in seconds
+        self.settings.punishment_time = 3  # in seconds
         # will it be punished for poking out of the center port early?
         self.settings.early_poke_punishment = False
         # time between trials (in seconds)
@@ -333,6 +333,11 @@ class TrainingSettings(Training):
         promotion_ntrials_threshold = 100
         punishment_performance_threshold = 0.70
 
+        # if the animal has failed 5 consecutive days with performance below 60%, introduce punishment
+        # They may bias so much and have no motivation to do the task
+        n_days_fail = 5
+        fail_performance_threshold = 0.60
+
         df_with_day = self.df.copy()
         df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
         total_days = df_with_day[df_with_day.current_training_stage == self.settings.current_training_stage].year_month_day.nunique()
@@ -361,7 +366,9 @@ class TrainingSettings(Training):
                 ]
             ):
                 self.settings.punishment = True
-                self.settings.punishment_time = 1
+                self.settings.punishment_time = 3
+            
+            
             # check if the animal is ready to be promoted
             if all(
                 [
@@ -387,6 +394,48 @@ class TrainingSettings(Training):
                             f"Stimulus modality {self.settings.stimulus_modality} not recognized."
                         )
                 self.promotion_alarm()
+ 
+            
+            # check if the animal is ready to be promoted
+            if all(
+                [
+                    performance > promotion_performance_threshold
+                    for performance in previous_performances
+                ]
+            ) and all([n_trials > promotion_ntrials_threshold for n_trials in previous_n_trials]):
+                # change the trial difficulty
+                self.settings.easy_trials_on = True
+                self.settings.medium_trials_on = True
+                self.settings.hard_trials_on = True
+                # change training stage
+                match self.settings.stimulus_modality:
+                    case "visual":
+                        self.settings.current_training_stage = "TwoAFC_visual_hard"
+                    case "auditory":
+                        self.settings.current_training_stage = "TwoAFC_auditory_hard"
+                    case "multisensory":
+                        self.settings.current_training_stage = "TwoAFC_multisensory_hard"
+                    case _:
+                        # raise an error
+                        log.error(
+                            f"Stimulus modality {self.settings.stimulus_modality} not recognized."
+                        )
+                self.promotion_alarm()
+                
+        if total_days >= n_days_fail:
+            previous_performances = [
+                utils.get_day_performance(df_with_day, day)
+                for day in df_with_day.year_month_day.unique()[-n_days:]
+            ]
+            # introduce punishment if conditions are not met
+            if all(
+                [
+                    performance < fail_performance_threshold
+                    for performance in previous_performances
+                ]
+            ):
+                self.settings.punishment = True
+                self.settings.punishment_time = 3
 
         return None
 
@@ -410,6 +459,7 @@ class TrainingSettings(Training):
             self.settings.punishment = False
             self.settings.anti_bias_on = True
             self.promotion_alarm()
+
 
         return None
 
@@ -476,7 +526,7 @@ class TrainingSettings(Training):
 
 #     import pandas as pd
 
-#     training = TrainingSettings()
+#     training = TrainingProtocol()
 #     dfdir = "/home/pi/Downloads/B15.csv"
 #     training.df = pd.read_csv(dfdir, sep=";")
 #     training.update_training_settings()

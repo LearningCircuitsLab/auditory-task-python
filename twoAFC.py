@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from lecilab_behavior_analysis.utils import (get_block_size_uniform_pm30,
                                              get_right_bias, get_sound_stats)
-from village.classes.task import Event, Output, Task
+from village.custom_classes.task import Event, Output, Task
 
 from sound_functions import cloud_of_tones_matrices, sound_matrix_to_sound, speaker_dict
 
@@ -586,11 +586,11 @@ class TwoAFC(Task):
 # if __name__ == "__main__":
 #     import time
 
-#     from training_settings import TrainingSettings
+#     from training_protocol import TrainingProtocol
 
 #     task = TwoAFC()
-#     training = TrainingSettings()
-#     training.default_training_settings()
+#     training = TrainingProtocol()
+#     training.default_training_protocol()
 #     task.settings = training.settings
 
 #     task.run_in_thread()

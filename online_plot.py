@@ -3,10 +3,10 @@ from lecilab_behavior_analysis.plots import (correct_left_and_right_plot,
                                              side_correct_performance_plot)
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
-from village.classes.plot import OnlinePlotFigureManager
+from village.custom_classes.online_plot_base import OnlinePlotBase
 
 
-class Online_Plot(OnlinePlotFigureManager):
+class OnlinePlot(OnlinePlotBase):
     # TODO: make this nice and add something informative for habituation, like the side chosen
     def __init__(self) -> None:
         super().__init__()

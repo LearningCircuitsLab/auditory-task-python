@@ -2,9 +2,8 @@ from village.devices.sound_device import sound_device
 from village.settings import settings
 from sound_functions import tone_generator, crescendo_looming_sound, white_noise
 import numpy as np
-from village.manager import get_task, manager
+from village.manager import manager
 
-task = get_task()
 
 def function1():
     # stop sound
@@ -69,7 +68,7 @@ def function9():
     # create a loud noise
     duration = 5
     ramptime = 0.05
-    amplitude = 0.05
+    amplitude = 0.003
     sample_rate = settings.get("SAMPLERATE")
     frequency = 5000
     # get the time steps

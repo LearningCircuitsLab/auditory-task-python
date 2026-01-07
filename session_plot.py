@@ -1,14 +1,14 @@
 import pandas as pd
 from lecilab_behavior_analysis.figure_maker import session_summary_figure
 from matplotlib.figure import Figure
-from village.classes.plot import SessionPlotFigureManager
+from village.custom_classes.session_plot_base import SessionPlotBase
 
 
-class Session_Plot(SessionPlotFigureManager):
+class SessionPlot(SessionPlotBase):
     def __init__(self) -> None:
         super().__init__()
 
-    def create_plot(self, df: pd.DataFrame, df_raw: pd.DataFrame, width: float = 15, height: float = 8) -> Figure:
+    def create_plot(self, df: pd.DataFrame, weight: float = 0.0, width: float = 10, height: float = 8) -> Figure:
         # add a dummy session column to the df
         df['session'] = 1
         # get the name of the mouse
