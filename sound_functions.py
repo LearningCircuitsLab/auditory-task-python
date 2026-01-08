@@ -6,6 +6,7 @@ from village.settings import settings
 # dicctionary to get the speaker number for each setup
 speaker_dict = {
     "village01": 0,
+    "village02": 0,
 }
 
 
