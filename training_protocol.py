@@ -13,6 +13,7 @@ in any port. This stage is used to habituate the mouse to the task.
 TODO:
 - remove the water at the beginning after a few sessions
 - remove the auto water after 2 minutes
+- teach the mouse to wait in the center port first
 
 *Second stage is TwoAFC Task using visual stimuli.
 Here, center port lights up and after poking, both ports light up with an easy discrimination.
@@ -137,11 +138,13 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.medium_frequency_proportion = 82
         self.settings.hard_light_intensity_difference = 2
         self.settings.hard_frequency_proportion = 66
+
         # basic parameters about the stimuli
         # how many possible intensities can the incorrect side port have (eg. 0.15 - 0.33)*
         # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.1666]
+        self.settings.random_COT_stimulus = False
         # contingency
         self.settings.frequency_associated_with_left_choice = "high"
         # parameters for the auditory stimuli
@@ -241,6 +244,7 @@ class TrainingProtocol(TrainingProtocolBase):
                 "easy_light_intensity_difference",
                 "medium_light_intensity_difference",
                 "hard_light_intensity_difference",
+                "random_COT_stimulus"
             ],
             "Sound": [
                 "frequency_associated_with_left_choice",
@@ -286,6 +290,7 @@ class TrainingProtocol(TrainingProtocolBase):
             "hard_trials_on": [True, False],
             "frequency_associated_with_left_choice": ["low", "high"],
             "initial_large_reward": [True, False],
+            "random_COT_stimulus": [False, True],
         }
 
 

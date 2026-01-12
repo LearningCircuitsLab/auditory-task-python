@@ -384,37 +384,39 @@ class TwoAFC(Task):
             self.valve_opening_time = self.right_valve_opening_time
 
         # define conditions based on the trial type
-        match self.stimulus_modality:
-            case "visual":
-                # choose the incorrect brightness at random
-                l_b, h_b = self.settings.side_port_wrong_intensities_extremes
-                self.incorrect_brightness = random.uniform(l_b, h_b)
-                # pick the correct brightness difference according to the difficulty
-                self.correct_brightness = self.incorrect_brightness * (
-                    self.trial_difficulty_parameters[
-                        self.this_trial_difficulty
-                    ]["light_intensity_difference"]
-                )
-                # store as the trial stimuli
-                self.trial_visual_stimulus = (
-                    self.correct_brightness,
-                    self.incorrect_brightness,
-                )
-                # set the output of the stimulus states
-                self.hold_while_stimulus_state_output.append(
-                    (self.correct_port_ID, int(self.correct_brightness * 255))
-                )
-                self.hold_while_stimulus_state_output.append(
-                    (self.incorrect_port_ID, int(self.incorrect_brightness * 255))
-                )
-                self.stimulus_state_output = [
-                    (self.correct_port_ID, int(self.correct_brightness * 255)),
-                    (self.incorrect_port_ID, int(self.incorrect_brightness * 255)),
-                ]
+        if self.stimulus_modality == "visual":
+            # choose the incorrect brightness at random
+            l_b, h_b = self.settings.side_port_wrong_intensities_extremes
+            self.incorrect_brightness = random.uniform(l_b, h_b)
+            # pick the correct brightness difference according to the difficulty
+            self.correct_brightness = self.incorrect_brightness * (
+                self.trial_difficulty_parameters[
+                    self.this_trial_difficulty
+                ]["light_intensity_difference"]
+            )
+            # store as the trial stimuli
+            self.trial_visual_stimulus = (
+                self.correct_brightness,
+                self.incorrect_brightness,
+            )
+            # set the output of the stimulus states
+            self.hold_while_stimulus_state_output.append(
+                (self.correct_port_ID, int(self.correct_brightness * 255))
+            )
+            self.hold_while_stimulus_state_output.append(
+                (self.incorrect_port_ID, int(self.incorrect_brightness * 255))
+            )
+            self.stimulus_state_output = [
+                (self.correct_port_ID, int(self.correct_brightness * 255)),
+                (self.incorrect_port_ID, int(self.incorrect_brightness * 255)),
+            ]
                 
-            case "auditory":
+        if self.stimulus_modality == "auditory" or self.settings.random_COT_stimulus:
                 # dominant frequency "low" or "high"
-                dominant_freq = self.auditory_contingency[self.this_trial_side]
+                if self.settings.random_COT_stimulus:
+                    dominant_freq = random.choice(["low", "high"])
+                else:  # make it contingent on the reward side
+                    dominant_freq = self.auditory_contingency[self.this_trial_side]
                 # get the proportion of tones for the dominant frequency
                 dominant_proportion = self.trial_difficulty_parameters[
                     self.this_trial_difficulty
@@ -485,8 +487,8 @@ class TwoAFC(Task):
                 self.ready_to_initiate_output.append(Output.SoftCode2)
                 # play the sound on the hold while stimulus state
                 self.hold_while_stimulus_state_output.append(Output.SoftCode3)
-                # the sound plays if not stopped
-                self.stimulus_state_output = []
+                # the sound plays if not stopped TODO: test this explicitely
+                # self.stimulus_state_output = []
 
     
     def get_sound_from_settings(self) -> None:
