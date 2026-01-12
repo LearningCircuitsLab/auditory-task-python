@@ -384,31 +384,44 @@ class TwoAFC(Task):
             self.valve_opening_time = self.right_valve_opening_time
 
         # define conditions based on the trial type
-        if self.stimulus_modality == "visual":
+        if self.stimulus_modality == "visual" or self.settings.random_visual_stimulus:
             # choose the incorrect brightness at random
             l_b, h_b = self.settings.side_port_wrong_intensities_extremes
-            self.incorrect_brightness = random.uniform(l_b, h_b)
+            lower_brightness = random.uniform(l_b, h_b)
             # pick the correct brightness difference according to the difficulty
-            self.correct_brightness = self.incorrect_brightness * (
+            higher_brightness = lower_brightness * (
                 self.trial_difficulty_parameters[
                     self.this_trial_difficulty
                 ]["light_intensity_difference"]
             )
+            # decide on the contingency of the stimulus and reward
+            if self.settings.random_visual_stimulus:
+                self.brightness_of_correct_port = random.choice(
+                    [higher_brightness, lower_brightness]
+                )
+                self.brightness_of_incorrect_port = (
+                    lower_brightness
+                    if self.brightness_of_correct_port == higher_brightness
+                    else higher_brightness
+                )
+            else:  # make it contingent on the reward side
+                self.brightness_of_correct_port = higher_brightness
+                self.brightness_of_incorrect_port = lower_brightness
             # store as the trial stimuli
             self.trial_visual_stimulus = (
-                self.correct_brightness,
-                self.incorrect_brightness,
+                self.brightness_of_correct_port,
+                self.brightness_of_incorrect_port,
             )
             # set the output of the stimulus states
             self.hold_while_stimulus_state_output.append(
-                (self.correct_port_ID, int(self.correct_brightness * 255))
+                (self.correct_port_ID, int(self.brightness_of_correct_port * 255))
             )
             self.hold_while_stimulus_state_output.append(
-                (self.incorrect_port_ID, int(self.incorrect_brightness * 255))
+                (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255))
             )
             self.stimulus_state_output = [
-                (self.correct_port_ID, int(self.correct_brightness * 255)),
-                (self.incorrect_port_ID, int(self.incorrect_brightness * 255)),
+                (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
+                (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255)),
             ]
                 
         if self.stimulus_modality == "auditory" or self.settings.random_COT_stimulus:

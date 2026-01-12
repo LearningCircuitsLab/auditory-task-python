@@ -161,6 +161,7 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.bottom_amplitude_mean = 60
         self.settings.amplitude_std = 2
         self.settings.ambiguous_beginning_time = 0.05
+        self.settings.random_visual_stimulus = False
 
     def update_training_settings(self) -> None:
         """
@@ -262,6 +263,7 @@ class TrainingProtocol(TrainingProtocolBase):
                 "bottom_amplitude_mean",
                 "amplitude_std",
                 "ambiguous_beginning_time",
+                "random_visual_stimulus",
             ],
             "Hide": [
                 "trial_sides",
@@ -291,6 +293,7 @@ class TrainingProtocol(TrainingProtocolBase):
             "frequency_associated_with_left_choice": ["low", "high"],
             "initial_large_reward": [True, False],
             "random_COT_stimulus": [False, True],
+            "random_visual_stimulus": [False, True],
         }
 
 
