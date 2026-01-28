@@ -448,9 +448,18 @@ class TwoAFC(Task):
                 )
                 # TODO: solve this in the calibration
                 # temporal solution for the calibration problem
-                # ensure the maximum value of the matrices is 79dB
-                high_mat = high_mat.clip(0, 79)
-                low_mat = low_mat.clip(0, 79)
+                # ensure the max and min values are within range
+                # Clip only non-zero values
+                high_mat[high_mat != 0] = np.clip(
+                    high_mat[high_mat != 0],
+                    self.settings.bottom_amplitude_mean,
+                    self.settings.top_amplitude_mean,
+                    )
+                low_mat[low_mat != 0] = np.clip(
+                    low_mat[low_mat != 0],
+                    self.settings.bottom_amplitude_mean,
+                    self.settings.top_amplitude_mean,
+                    )
                 # store the trial stimuli
                 self.trial_auditory_stimulus = {
                     "high_tones": high_mat.to_dict(),
