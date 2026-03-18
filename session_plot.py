@@ -13,4 +13,4 @@ class SessionPlot(SessionPlotBase):
         df['session'] = 1
         # get the name of the mouse
         mouse_name = df.subject.iloc[0]
-        return session_summary_figure(df, mouse_name=mouse_name, width=height, height=width)
+        return session_summary_figure(df, mouse_name=mouse_name, width=width, height=height)
