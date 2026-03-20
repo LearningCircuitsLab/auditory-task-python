@@ -7,9 +7,11 @@ from village.custom_classes.online_plot_base import OnlinePlotBase
 
 
 class OnlinePlot(OnlinePlotBase):
-    # TODO: make this nice and add something informative for habituation, like the side chosen
     def __init__(self) -> None:
         super().__init__()
+
+    def create_figure_and_axes(self) -> None:
+        # TODO: make this nice and add something informative for habituation, like the side chosen
         self.fig = plt.figure(figsize=(20, 5))
         rows_gs = gridspec.GridSpec(2, 1, height_ratios=[1, 2])
         # Create separate inner grids for each row with different width ratios
