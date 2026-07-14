@@ -158,6 +158,8 @@ class TwoAFC(Task):
                 int(self.settings.middle_port_light_intensity * 255),
             )
         ]
+        # initialize stimulus state output, it will be updated in set_stimulus_state_conditions
+        self.stimulus_state_output = []
         # define the output of the punish state
         self.punish_condition_output = [
             Output.SoftCode4,  # stop sound and play white noise
@@ -413,16 +415,14 @@ class TwoAFC(Task):
                 self.brightness_of_incorrect_port,
             )
             # set the output of the stimulus states
-            self.hold_while_stimulus_state_output.append(
-                (self.correct_port_ID, int(self.brightness_of_correct_port * 255))
-            )
-            self.hold_while_stimulus_state_output.append(
+            self.hold_while_stimulus_state_output.extend([
+                (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
                 (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255))
-            )
-            self.stimulus_state_output = [
+            ])
+            self.stimulus_state_output.extend([
                 (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
                 (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255)),
-            ]
+            ])
                 
         if self.stimulus_modality == "auditory" or self.settings.random_COT_stimulus:
                 # dominant frequency "low" or "high"
@@ -510,7 +510,6 @@ class TwoAFC(Task):
                 # play the sound on the hold while stimulus state
                 self.hold_while_stimulus_state_output.append(Output.SoftCode3)
                 # the sound plays if not stopped TODO: test this explicitely
-                # self.stimulus_state_output = []
 
     
     def get_sound_from_settings(self) -> None:
