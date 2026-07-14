@@ -102,13 +102,18 @@ class TwoAFC(Task):
         # initialize the variables that will hold the stimuli for the trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
+        self.trial_auditory_output_side = None
 
         # initialize the sound properties
         self.get_sound_from_settings()
         # create a variable in manager to store the sound
         self.twoAFC_sound = None
-        # find the speaker that this system is using
-        self.speaker = speaker_dict[self.system_name]
+        # find the speakers that this system is using
+        speaker_config = speaker_dict[self.system_name]
+        if isinstance(speaker_config, dict):
+            self.speakers = speaker_config
+        else:
+            self.speakers = {"left": speaker_config, "right": speaker_config}
 
         # create the dictionary for the difficulty of trials and the stimulus properties
         self.trial_difficulty_parameters = {}
@@ -260,6 +265,7 @@ class TwoAFC(Task):
         # register the actual stimuli used
         self.register_value("visual_stimulus", self.trial_visual_stimulus)
         self.register_value("auditory_stimulus", self.trial_auditory_stimulus)
+        self.register_value("auditory_output_side", self.trial_auditory_output_side)
         # register the actual auditory statistics
         if self.trial_auditory_stimulus is not None:
             sound_stats = get_sound_stats(self.trial_auditory_stimulus)
@@ -269,6 +275,7 @@ class TwoAFC(Task):
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
         self.trial_auditory_stimulus = None
+        self.trial_auditory_output_side = None
         # if multisensory, register the block number
         if self.settings.stimulus_modality == "multisensory":
             self.register_value(
@@ -480,36 +487,65 @@ class TwoAFC(Task):
                     "high_tones": high_mat.to_dict(),
                     "low_tones": low_mat.to_dict(),
                 }
-                # calibrate the sound applying self.get_sound_gain to all values of the matrices
-                high_mat_calibrated = high_mat.map(
-                    lambda db: self.sound_calibration.get_sound_gain(
-                        self.speaker,
-                        db,
-                        "one_thousand_hz_calibration",
-                        )
+                self.trial_auditory_output_side = self.choose_auditory_output_side()
+
+                # calibrate the sound for each speaker independently
+                left_sound = self.generate_calibrated_sound_for_speaker(
+                    high_mat,
+                    low_mat,
+                    self.speakers["left"],
                 )
-                low_mat_calibrated = low_mat.map(
-                    lambda db: self.sound_calibration.get_sound_gain(
-                        self.speaker,
-                        db,
-                        "one_thousand_hz_calibration",
-                        )
+                right_sound = self.generate_calibrated_sound_for_speaker(
+                    high_mat,
+                    low_mat,
+                    self.speakers["right"],
                 )
-                # generate the sound
-                sound = sound_matrix_to_sound(
-                    pd.concat([high_mat_calibrated, low_mat_calibrated], axis=0),
-                    **self.sound_properties_for_sound_making,
-                )
+
+                if self.trial_auditory_output_side == "left":
+                    right_sound = np.zeros_like(left_sound)
+                elif self.trial_auditory_output_side == "right":
+                    left_sound = np.zeros_like(right_sound)
 
                 # TODO: implement the relative to 1000 calibration
 
                 # add the sound to manager so it is accessible by the softcode functions
-                self.twoAFC_sound = sound
+                self.twoAFC_sound = {"left": left_sound, "right": right_sound}
                 # load the sound to the Bpod in the ready_to_initiate state
                 self.ready_to_initiate_output.append(Output.SoftCode2)
                 # play the sound on the hold while stimulus state
                 self.hold_while_stimulus_state_output.append(Output.SoftCode3)
                 # the sound plays if not stopped TODO: test this explicitely
+
+    def choose_auditory_output_side(self) -> str:
+        unilateral_probability = self.settings.unilateral_sound_percentage / 100
+        if random.random() < unilateral_probability:
+            return random.choice(["left", "right"])
+        return "both"
+
+    def generate_calibrated_sound_for_speaker(
+        self,
+        high_mat: pd.DataFrame,
+        low_mat: pd.DataFrame,
+        speaker: int,
+    ) -> np.ndarray:
+        high_mat_calibrated = high_mat.map(
+            lambda db: self.sound_calibration.get_sound_gain(
+                speaker,
+                db,
+                "one_thousand_hz_calibration",
+            )
+        )
+        low_mat_calibrated = low_mat.map(
+            lambda db: self.sound_calibration.get_sound_gain(
+                speaker,
+                db,
+                "one_thousand_hz_calibration",
+            )
+        )
+        return sound_matrix_to_sound(
+            pd.concat([high_mat_calibrated, low_mat_calibrated], axis=0),
+            **self.sound_properties_for_sound_making,
+        )
 
     
     def get_sound_from_settings(self) -> None:

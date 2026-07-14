@@ -12,7 +12,11 @@ def function1():
 
 def function2():
     # load the sound loaded in manager
-    sound_device.load(left=manager.task.twoAFC_sound, right=manager.task.twoAFC_sound)
+    task_sound = manager.task.twoAFC_sound
+    if isinstance(task_sound, dict):
+        sound_device.load(left=task_sound["left"], right=task_sound["right"])
+    else:
+        sound_device.load(left=task_sound, right=task_sound)
 
 
 def function3():
