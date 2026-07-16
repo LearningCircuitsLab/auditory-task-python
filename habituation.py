@@ -1,8 +1,11 @@
-from village.custom_classes.task import Event, Output, Task
-from village.manager import manager
+from village.custom_classes.task_base import (
+    BpodEvent as Event,
+    BpodOutput as Output,
+    TaskBase,
+)
 
 
-class Habituation(Task):
+class Habituation(TaskBase):
     def __init__(self):
         super().__init__()
 
@@ -42,10 +45,10 @@ class Habituation(Task):
 
         # Time the valve needs to open to deliver the reward amount
         # Make sure to calibrate the valve before using it
-        self.left_valve_opening_time = manager.water_calibration.get_valve_time(
+        self.left_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
             port=1, volume=self.settings.reward_amount_ml
         )
-        self.right_valve_opening_time = manager.water_calibration.get_valve_time(
+        self.right_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
             port=3, volume=self.settings.reward_amount_ml
         )
 

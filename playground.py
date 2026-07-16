@@ -45,11 +45,11 @@ high_mat, low_mat = cloud_of_tones_matrices(
 
 from village.manager import manager
 
-print(manager.sound_calibration.get_sound_gain(0, 74.7, "one_thousand_hz_calibration"))
+print(manager.calibrations.sound_calibration.get_sound_gain(0, 74.7, "one_thousand_hz_calibration"))
 
 # Replace 'self' with an appropriate object or variable, e.g., 'calibration_tool'
 high_mat_calibrated = high_mat.map(
-    lambda db: manager.sound_calibration.get_sound_gain(
+    lambda db: manager.calibrations.sound_calibration.get_sound_gain(
         0,
         db,
         "one_thousand_hz_calibration",
@@ -57,7 +57,7 @@ high_mat_calibrated = high_mat.map(
 )
 
 low_mat_calibrated = low_mat.map(
-    lambda db: manager.sound_calibration.get_sound_gain(
+    lambda db: manager.calibrations.sound_calibration.get_sound_gain(
         0,
         db,
         "one_thousand_hz_calibration",

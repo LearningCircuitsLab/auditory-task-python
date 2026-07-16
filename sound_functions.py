@@ -7,6 +7,7 @@ from village.settings import settings
 speaker_dict = {
     "village01": 0,
     "village02": 0,
+    "village06": {"left": 0, "right": 1}
 }
 
 
@@ -539,9 +540,9 @@ if __name__ == "__main__":
 
     from village.devices.sound_device import SoundDevice
 
-    sd = SoundDevice(sound_properties["sample_rate"])
+    sd = SoundDevice()
 
-    sd.load(cot)
+    sd.load(left=cot, right=cot)
     sd.play()
 
     # time.sleep(2)
@@ -570,4 +571,4 @@ if __name__ == "__main__":
     # y axis log
     plt.show()
     
-    sd.close()
+    sd.shutdown()

@@ -161,7 +161,8 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.bottom_amplitude_mean = 60
         self.settings.amplitude_std = 2
         self.settings.ambiguous_beginning_time = 0.05
-        self.settings.unilateral_sound_percentage = 0
+        self.settings.unilateral_sound_probability = 0
+        self.settings.unilateral_sound_side = "both"
         self.settings.random_visual_stimulus = False
 
     def update_training_settings(self) -> None:
@@ -253,7 +254,8 @@ class TrainingProtocol(TrainingProtocolBase):
                 "easy_frequency_proportion",
                 "medium_frequency_proportion",
                 "hard_frequency_proportion",
-                "unilateral_sound_percentage",
+                "unilateral_sound_probability",
+                "unilateral_sound_side",
                 "sound_duration",
                 "lowest_frequency",
                 "highest_frequency",
@@ -296,6 +298,7 @@ class TrainingProtocol(TrainingProtocolBase):
             "initial_large_reward": [True, False],
             "random_COT_stimulus": [False, True],
             "random_visual_stimulus": [False, True],
+            "unilateral_sound_side": ["both", "left", "right"],
         }
 
 
