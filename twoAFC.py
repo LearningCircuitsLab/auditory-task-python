@@ -264,6 +264,8 @@ class TwoAFC(TaskBase):
         self.register_value("correct_side", self.this_trial_side)
         # register the modality of the stimulus
         self.register_value("stimulus_modality", self.stimulus_modality)
+        # register if the option of following sound location was used
+        self.register_value("use_sound_location", self.settings.use_sound_location)
         # register the difficulty of the trial
         self.register_value("difficulty", self.this_trial_difficulty)
         # register the actual stimuli used
@@ -437,7 +439,7 @@ class TwoAFC(TaskBase):
                 
         if self.stimulus_modality == "auditory" or self.settings.random_COT_stimulus:
                 # dominant frequency "low" or "high"
-                if self.settings.random_COT_stimulus:
+                if self.settings.random_COT_stimulus or self.settings.use_sound_location:
                     dominant_freq = random.choice(["low", "high"])
                 else:  # make it contingent on the reward side
                     dominant_freq = self.auditory_contingency[self.this_trial_side]
@@ -521,6 +523,9 @@ class TwoAFC(TaskBase):
                 # the sound plays if not stopped TODO: test this explicitely
 
     def choose_auditory_output_side(self) -> str:
+        # if using sound location, return the side associated with the trial type
+        if self.settings.use_sound_location:
+            return self.this_trial_side
         unilateral_probability = self.settings.unilateral_sound_probability
         if random.random() < unilateral_probability:
             if self.settings.unilateral_sound_side in ["left", "right"]:

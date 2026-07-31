@@ -164,6 +164,7 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.unilateral_sound_probability = 0
         self.settings.unilateral_sound_side = "both"
         self.settings.random_visual_stimulus = False
+        self.settings.use_sound_location = False
 
     def update_training_settings(self) -> None:
         """
@@ -268,6 +269,7 @@ class TrainingProtocol(TrainingProtocolBase):
                 "amplitude_std",
                 "ambiguous_beginning_time",
                 "random_visual_stimulus",
+                "use_sound_location",
             ],
             "Hide": [
                 "trial_sides",
@@ -299,6 +301,7 @@ class TrainingProtocol(TrainingProtocolBase):
             "random_COT_stimulus": [False, True],
             "random_visual_stimulus": [False, True],
             "unilateral_sound_side": ["both", "left", "right"],
+            "use_sound_location": [False, True],
         }
 
 
