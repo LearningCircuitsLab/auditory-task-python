@@ -31,7 +31,7 @@ class DirectFunctions(DirectFunctionsBase):
         print("inside function4")
         sound_device.stop()
         # create and play white noise of 1 second
-        noise = white_noise(duration=1.0, amplitude=0.1)
+        noise = white_noise(duration=1.0, amplitude=0.01)
         print("inside function4: noise created")
         sound_device.load(right=noise, left=noise)
         print("inside function4: noise loaded")
