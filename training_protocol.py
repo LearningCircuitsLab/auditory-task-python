@@ -13,6 +13,7 @@ in any port. This stage is used to habituate the mouse to the task.
 TODO:
 - remove the water at the beginning after a few sessions
 - remove the auto water after 2 minutes
+- teach the mouse to wait in the center port first
 
 *Second stage is TwoAFC Task using visual stimuli.
 Here, center port lights up and after poking, both ports light up with an easy discrimination.
@@ -92,6 +93,15 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.minimum_duration = 10*60 # 10 minutes
         self.settings.maximum_duration = 30*60 # 30 minutes
 
+        # Training protocol assigned to this animal:
+        # "pure_tone_cot": auditory_local_wn -> auditory_freq
+        # "visual_cot": visual -> auditory
+        self.settings.training_sequence = ["visual", "auditory_cot", "multisensory"]
+        self.settings.first_stimulus_modality = self.settings.training_sequence[0]
+        self.settings.second_stimulus_modality = self.settings.training_sequence[1]
+        self.settings.third_stimulus_modality = self.settings.training_sequence[2]
+        self.settings.training_sequence_index = 0
+
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
         # stimulus modality
@@ -137,17 +147,22 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.medium_frequency_proportion = 82
         self.settings.hard_light_intensity_difference = 2
         self.settings.hard_frequency_proportion = 66
+        self.settings.easy_location_db_range = [60, 70]
+        self.settings.medium_location_db_range = [50, 60]
+        self.settings.hard_location_db_range = [40, 50]
+
         # basic parameters about the stimuli
         # how many possible intensities can the incorrect side port have (eg. 0.15 - 0.33)*
         # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.1666]
+        self.settings.random_COT_stimulus = False
         # contingency
         self.settings.frequency_associated_with_left_choice = "high"
         # parameters for the auditory stimuli
         # TODO: make an example for how to access this value
         self.settings.sample_rate = settings.get("SAMPLERATE")
-        self.settings.sound_duration = 0.5
+        self.settings.sound_duration = 0.1
         self.settings.lowest_frequency = 5000
         self.settings.highest_frequency = 40000
         self.settings.number_of_frequencies = 6
@@ -158,6 +173,36 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.bottom_amplitude_mean = 60
         self.settings.amplitude_std = 2
         self.settings.ambiguous_beginning_time = 0.05
+        self.settings.unilateral_sound_probability = 0
+        self.settings.unilateral_sound_side = "both"
+        self.settings.random_visual_stimulus = False
+
+
+    def get_protocol_from_sequence(self) -> None:
+        sequence = self.settings.training_sequence
+
+        if not isinstance(sequence, list):
+            raise TypeError("training_sequence must be a list")
+
+        if len(sequence) == 0:
+            raise ValueError("training_sequence cannot be empty")
+
+        allowed_modalities = {
+            "visual",
+            "auditory_local_wn",
+            "auditory_cot",
+            "auditory_local_cot",
+            "multisensory",
+        }
+
+        unknown_modalities = set(sequence) - allowed_modalities
+
+        if unknown_modalities:
+            raise ValueError(
+                "Unknown modalities in training_sequence: "
+                f"{sorted(unknown_modalities)}"
+            )
+
 
     def update_training_settings(self) -> None:
         """
@@ -170,7 +215,7 @@ class TrainingProtocol(TrainingProtocolBase):
         # self.settings contains the settings from the last session
 
         # General progressions and adjustments of parameters
-
+        self.get_protocol_from_sequence()
         # if the animal is running on manual mode and the training stage is manual, keep the same settings
         if self.df.run_mode.iloc[-1] == "Manual" and self.settings.current_training_stage == "Manual_training":
             return None
@@ -196,29 +241,23 @@ class TrainingProtocol(TrainingProtocolBase):
                 self.settings.holding_response_time = self.df.iloc[-1]["holding_time"]
 
         # implement checks depending on the training stage
-        match self.settings.current_training_stage:
-            case "Habituation":
-                self.check_progression_from_habituation()
-            case "TwoAFC_visual_easy":
-                self.check_progression_from_tafc_easy()
-            case "TwoAFC_visual_hard":
-                self.check_progression_from_tafc_visual_hard()
-            case "TwoAFC_auditory_easy":
-                self.check_progression_from_tafc_easy()
-            case "TwoAFC_auditory_hard":
-                self.check_progression_from_tafc_auditory_hard()
-            case "TwoAFC_multisensory_easy":
-                self.check_progression_from_tafc_easy()
-            case "TwoAFC_multisensory_hard":
-                self.check_progression_from_tafc_multisensory_hard()
-            case "Manual_training":
-                # do nothing
-                pass
-            case _:
-                # raise an error
-                log.error(
-                    f"Training stage {self.settings.current_training_stage} not recognized."
-                )
+        stage = self.settings.current_training_stage
+
+        if stage == "Habituation":
+            self.check_progression_from_habituation()
+
+        elif stage.endswith("_easy"):
+            self.check_progression_from_tafc_easy()
+
+        elif stage.endswith("_hard"):
+            self.check_progression_from_tafc_hard()
+
+        elif stage == "Manual_training":
+            pass
+        else:
+            log.error(
+                f"Training stage {stage} not recognized."
+            )
 
         return None
     
@@ -227,6 +266,11 @@ class TrainingProtocol(TrainingProtocolBase):
         This method is used to define the tabs that will be shown in the GUI.
         """
         self.gui_tabs = {
+            "Protocol": [
+                "first_stimulus_modality",
+                "second_stimulus_modality",
+                "third_stimulus_modality",
+            ],
             "Difficulty": [
                 "easy_trials_on",
                 "medium_trials_on",
@@ -241,12 +285,15 @@ class TrainingProtocol(TrainingProtocolBase):
                 "easy_light_intensity_difference",
                 "medium_light_intensity_difference",
                 "hard_light_intensity_difference",
+                "random_COT_stimulus"
             ],
             "Sound": [
                 "frequency_associated_with_left_choice",
                 "easy_frequency_proportion",
                 "medium_frequency_proportion",
                 "hard_frequency_proportion",
+                "unilateral_sound_probability",
+                "unilateral_sound_side",
                 "sound_duration",
                 "lowest_frequency",
                 "highest_frequency",
@@ -258,6 +305,10 @@ class TrainingProtocol(TrainingProtocolBase):
                 "bottom_amplitude_mean",
                 "amplitude_std",
                 "ambiguous_beginning_time",
+                "random_visual_stimulus",
+                "easy_location_db_range",
+                "medium_location_db_range",
+                "hard_location_db_range"
             ],
             "Hide": [
                 "trial_sides",
@@ -267,17 +318,27 @@ class TrainingProtocol(TrainingProtocolBase):
         }
 
         self.gui_tabs_restricted = {
+            "first_stimulus_modality": ["visual", "auditory_cot", "auditory_local_wn"],
+            "second_stimulus_modality": ["visual", "auditory_cot", "auditory_local_wn"],
+            "third_stimulus_modality": ["multisensory"],
             "current_training_stage": [
                 "Habituation",
+
                 "TwoAFC_visual_easy",
                 "TwoAFC_visual_hard",
-                "TwoAFC_auditory_easy",
-                "TwoAFC_auditory_hard",
+                "TwoAFC_auditory_cot_easy",
+                "TwoAFC_auditory_cot_hard",
+                "TwoAFC_auditory_local_wn_easy",
+                "TwoAFC_auditory_local_wn_hard",
+
                 "TwoAFC_multisensory_easy",
                 "TwoAFC_multisensory_hard",
                 "Manual_training",
             ],
-            "stimulus_modality": ["visual", "auditory", "multisensory"],
+
+            "stimulus_modality": ["visual", "auditory_cot",
+                                  "auditory_local_wn", "multisensory",
+            ],
             "punishment": [True, False],
             "early_poke_punishment": [True, False],
             "anti_bias_on": [True, False],
@@ -286,8 +347,13 @@ class TrainingProtocol(TrainingProtocolBase):
             "hard_trials_on": [True, False],
             "frequency_associated_with_left_choice": ["low", "high"],
             "initial_large_reward": [True, False],
+            "random_COT_stimulus": [False, True],
+            "random_visual_stimulus": [False, True],
+            "unilateral_sound_side": ["both", "left", "right"],
         }
 
+    def get_stage_name(self, modality: str, difficulty: str) -> str:
+        return f"TwoAFC_{modality}_{difficulty}"
 
     def check_progression_from_habituation(self) -> None:
         """
@@ -312,10 +378,20 @@ class TrainingProtocol(TrainingProtocolBase):
         total_trials = self.df.shape[0]
         if total_trials >= 150:
             self.settings.next_task = "TwoAFC"
-            self.settings.current_training_stage = "TwoAFC_visual_easy"
-            self.settings.stimulus_modality = "visual"
+
+            self.settings.training_sequence_index = 0
+            first_modality = self.settings.training_sequence[0]
+
+            self.settings.stimulus_modality = first_modality
+            self.settings.current_training_stage = (
+                self.get_stage_name(modality=first_modality, difficulty="easy")
+            )
+
             self.settings.easy_trials_on = True
-            # trigger alarm
+            self.settings.medium_trials_on = False
+            self.settings.hard_trials_on = False
+            self.settings.punishment = False
+
             self.promotion_alarm()
 
         return None
@@ -381,45 +457,11 @@ class TrainingProtocol(TrainingProtocolBase):
                 self.settings.medium_trials_on = True
                 self.settings.hard_trials_on = True
                 # change training stage
-                match self.settings.stimulus_modality:
-                    case "visual":
-                        self.settings.current_training_stage = "TwoAFC_visual_hard"
-                    case "auditory":
-                        self.settings.current_training_stage = "TwoAFC_auditory_hard"
-                    case "multisensory":
-                        self.settings.current_training_stage = "TwoAFC_multisensory_hard"
-                    case _:
-                        # raise an error
-                        log.error(
-                            f"Stimulus modality {self.settings.stimulus_modality} not recognized."
-                        )
-                self.promotion_alarm()
- 
-            
-            # check if the animal is ready to be promoted
-            if all(
-                [
-                    performance > promotion_performance_threshold
-                    for performance in previous_performances
-                ]
-            ) and all([n_trials > promotion_ntrials_threshold for n_trials in previous_n_trials]):
-                # change the trial difficulty
-                self.settings.easy_trials_on = True
-                self.settings.medium_trials_on = True
-                self.settings.hard_trials_on = True
-                # change training stage
-                match self.settings.stimulus_modality:
-                    case "visual":
-                        self.settings.current_training_stage = "TwoAFC_visual_hard"
-                    case "auditory":
-                        self.settings.current_training_stage = "TwoAFC_auditory_hard"
-                    case "multisensory":
-                        self.settings.current_training_stage = "TwoAFC_multisensory_hard"
-                    case _:
-                        # raise an error
-                        log.error(
-                            f"Stimulus modality {self.settings.stimulus_modality} not recognized."
-                        )
+                self.settings.current_training_stage = (
+                    self.get_stage_name(
+                        modality=self.settings.stimulus_modality, difficulty="hard"
+                    )
+                )
                 self.promotion_alarm()
                 
         if total_days >= n_days_fail:
@@ -439,20 +481,28 @@ class TrainingProtocol(TrainingProtocolBase):
 
         return None
 
-    def check_progression_from_tafc_visual_hard(self) -> None:
+    def check_progression_from_tafc_hard(self) -> None:
         """
         This method checks if the animal is ready to get promoted from
-        TwoAFC visual hard to TwoAFC auditory easy.
+        TwoAFC hard to the next modality in the training sequence.
         """
-        # logic to promote the animal to the auditory training stage:
-        # after 1500 trials in the hard visual training stage,
+        # logic to promote the animal to the next modality in the training sequence:
+        # after 1500 trials in the hard training stage,
         # with no performance requirements
         total_trials = self.df[
-            self.df.current_training_stage == "TwoAFC_visual_hard"
+            self.df.current_training_stage == self.settings.current_training_stage
         ].shape[0]
-        if total_trials >= 600:
-            self.settings.stimulus_modality = "auditory"
-            self.settings.current_training_stage = "TwoAFC_auditory_easy"
+        if ("visual" in self.settings.training_sequence) and ("auditory_cot" in self.settings.training_sequence):
+            progress_num = 1000
+        else:
+            progress_num = 5000
+        if (total_trials >= progress_num) and (self.settings.training_sequence_index < len(self.settings.training_sequence) - 1):
+            self.settings.training_sequence_index += 1
+            next_modality = self.settings.training_sequence[self.settings.training_sequence_index]
+            self.settings.stimulus_modality = next_modality
+            self.settings.current_training_stage = (
+                self.get_stage_name(modality=next_modality, difficulty="easy")
+            )
             self.settings.easy_trials_on = True
             self.settings.medium_trials_on = False
             self.settings.hard_trials_on = False
@@ -460,31 +510,6 @@ class TrainingProtocol(TrainingProtocolBase):
             self.settings.anti_bias_on = True
             self.promotion_alarm()
 
-
-        return None
-
-    def check_progression_from_tafc_auditory_hard(self) -> None:
-        """
-        This method checks if the animal is ready to get promoted from
-        TwoAFC auditory hard to TwoAFC multisensory easy.
-        """
-        # logic to promote the animal to the auditory training stage:
-        # after 1500 trials in the hard auditory training stage
-        total_trials = self.df[
-            self.df.current_training_stage == "TwoAFC_auditory_hard"
-        ].shape[0]
-        if total_trials >= 5000:
-            self.settings.current_training_stage = "TwoAFC_multisensory_easy"
-            self.settings.easy_trials_on = True
-            self.settings.medium_trials_on = False
-            self.settings.hard_trials_on = False
-            self.settings.stimulus_modality = "multisensory"
-            self.promotion_alarm()
-
-        return None
-
-    def check_progression_from_tafc_multisensory_hard(self) -> None:
-        # Last stage, no progression, for now
         return None
 
     def promotion_alarm(self) -> None:

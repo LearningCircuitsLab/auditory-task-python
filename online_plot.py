@@ -1,15 +1,20 @@
 import pandas as pd
 from lecilab_behavior_analysis.plots import (correct_left_and_right_plot,
-                                             side_correct_performance_plot)
+                                             side_correct_performance_plot,
+                                             choice_by_difficulty_plot)
+import lecilab_behavior_analysis.utils as utils
+import lecilab_behavior_analysis.df_transforms as dft
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
 from village.custom_classes.online_plot_base import OnlinePlotBase
 
 
 class OnlinePlot(OnlinePlotBase):
-    # TODO: make this nice and add something informative for habituation, like the side chosen
     def __init__(self) -> None:
         super().__init__()
+
+    def create_figure_and_axes(self) -> None:
+        # TODO: make this nice and add something informative for habituation, like the side chosen
         self.fig = plt.figure(figsize=(20, 5))
         rows_gs = gridspec.GridSpec(2, 1, height_ratios=[1, 2])
         # Create separate inner grids for each row with different width ratios
@@ -22,6 +27,7 @@ class OnlinePlot(OnlinePlotBase):
         self.ax1 = self.fig.add_subplot(top_gs[0, 0])
         self.ax2 = self.fig.add_subplot(bot_gs[0, 0])
         self.ax3 = self.fig.add_subplot(bot_gs[0, 1])
+        self.ax4 = self.fig.add_subplot(bot_gs[0, 2])
 
     def update_plot(self, df: pd.DataFrame) -> None:
         try:
@@ -40,6 +46,16 @@ class OnlinePlot(OnlinePlotBase):
         except Exception as e:
             print(e)
             self.make_error_plot(self.ax2)
+        try:
+            self.ax4.clear()
+            df_mod = df.copy()
+            df_mod["side_difficulty"] = df_mod.apply(lambda row: utils.side_and_difficulty_to_numeric(row), axis=1)
+            df_mod = dft.add_mouse_first_choice(df_mod)
+            df_mod['first_choice_numeric'] = df_mod['first_choice'].apply(utils.transform_side_choice_to_numeric)
+            self.ax4 = choice_by_difficulty_plot(df_mod, ax=self.ax4, hue="auditory_output_side")
+        except Exception as e:
+            print(e)
+            self.make_error_plot(self.ax4)
 
         self.fig.tight_layout()
 

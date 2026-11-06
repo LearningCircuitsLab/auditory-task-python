@@ -24,8 +24,8 @@ def main():
     training = TrainingProtocol()
     training.default_training_settings()
     tafc_task.settings = training.settings
-    tafc_task.settings.stimulus_modality = "visual"
-    tafc_task.settings.current_training_stage = "TwoAFC_visual_easy"
+    tafc_task.settings.stimulus_modality = "auditory_loca"
+    tafc_task.settings.current_training_stage = "TwoAFC_auditory_loca_easy"
     tafc_task.settings.trial_types = ["left_easy", "right_easy"]
     tafc_task.settings.holding_response_time = 0.0
     tafc_task.settings.holding_response_time_step = 0.00
@@ -83,7 +83,7 @@ def main():
             # read the data from the .csv file
             tafc_task.df = pd.read_csv(tafc_task.rt_session_path, sep=";")
             # update the plot
-            plotter.update_plot(tafc_task.transform_df())
+            plotter.update_plot(tafc_task.session_df)
 
             time_plot_update.append(time.time() - t_loop)
             t_loop = time.time()
@@ -95,7 +95,7 @@ def main():
     )
     print("Average time for plot update: ", sum(time_plot_update) / len(time_plot_update))
     time.sleep(2)
-    tafc_task.disconnect_and_save()
+    tafc_task.disconnect_and_save("Manual")
     tafc_task.close()
     plotter.keep_plotting()
 
