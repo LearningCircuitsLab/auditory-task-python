@@ -107,7 +107,7 @@ class AutoTwo2AFC(AutoNoMouseBase):
             
 
             # Outcome and trial type (what's logged in Task.after_trial)
-            "water":      task.settings.reward_amount_ml if correct else 0,
+            "water":      task.settings.reward_amount_ul if correct else 0,
             "correct_side": trial_type,
             "correct":    correct,
             "auditory_output_side": aud_out_side,

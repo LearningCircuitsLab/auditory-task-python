@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import lecilab_behavior_analysis.utils as utils
 from village.custom_classes.training_protocol_base import TrainingProtocolBase
 from village.scripts.log import log
@@ -7,45 +8,38 @@ from village.settings import settings
 """
 Two Alternative Force Choice Task for the Training Village.
 
-*First stage of training is Habituation Task. Here, center port lights up
-and after poking both sides light up. Mouse receives reward for poking
-in any port. This stage is used to habituate the mouse to the task.
-TODO:
-- remove the water at the beginning after a few sessions
-- remove the auto water after 2 minutes
-- teach the mouse to wait in the center port first
+Stages:
+- Habituation: the center port lights up; after poking it, both side ports
+  light up and both give reward. From the 4th session on, the initial large
+  reward is removed, the time before the automatic reward
+  (time_to_auto_reward) grows by 20 s per session, and the session durations
+  and refractory period grow slowly.
+- TwoAFC_<modality>_easy: only easy trials.
+- TwoAFC_<modality>_hard: easy, medium and hard trials.
 
-*Second stage is TwoAFC Task using visual stimuli.
-Here, center port lights up and after poking, both ports light up with an easy discrimination.
-Mouse receives reward for poking in the brightest port.
-
-*Third stage is TwoAFC using visual stimuli with increased difficulty.
-Both ports light up, but brightness can be more similar. Mouse receives reward for poking.
-
-*Fourth stage is TwoAFC using auditory stimuli. Here, center port lights up and after poking,
-a cloud of tones is played. Mouse receives reward for poking in the correct port.
-
-*Fifth stage is TwoAFC using auditory stimuli with increased difficulty.
-
-*Sixth stage interleaves visual and auditory stimuli in easy mode in blocks.
-
-*Seventh stage interleaves visual and auditory stimuli in hard mode in blocks.
+The modalities and their order come from the training sequence: first,
+second and third_stimulus_modality in the GUI (second and third are
+optional). The third can only be multisensory, which alternates the
+modalities before it in blocks.
 
 Progression rules:
-- Reward keeps decreasing after each session that has more than 50 trials.
-- Animals move to TwoAFC (visual, easy) after 300 trials in Habituation.
-- Waiting time in the center port keeps increasing to a limit during TwoAFC.
-  This is implemented in the task, but parameters for how to do this are here.
-- Animals move to the hard version of TwoAFC visual after after 3 consecutive 
-  days with over 500 trials and with over 85% performance.
-- Animals move to auditory version when they complete over 1500 trials on
-  the hard version of the visual task.
-- Animals move to the hard version of the auditory task is the same as the
-  visual case.
-- Animals move to the multisensory task after completing 1500 trials on the
-  hard version of the auditory task.
-- Animals move to the hard version of the multisensory task is the same as the
-  visual and auditory case.
+- Habituation -> first modality, easy: after 150 trials in total.
+- Easy -> hard (same modality), using only the trials of the current stage:
+  the last 3 days each with over 85% performance and over 100 trials.
+  Punishment is switched on if the last 3 days are all above 70%, or if
+  the last 5 days are all below 60% (checked from the 5th day in the stage).
+  From the 3rd day in the stage, session durations and refractory period
+  grow slowly.
+- Hard -> next modality of the sequence, easy: after
+  <modality>_hard_trials_to_promote trials in the hard stage (one setting
+  per single modality), with no performance requirement. If that setting
+  is 0, the hard stage is skipped: the animal goes from the easy stage
+  straight to the next modality. Punishment is switched off and the
+  anti-bias on. If there is no next modality, the animal stays in the hard
+  stage. Multisensory hard is always the last stage.
+- The holding time in the center port grows by holding_response_time_step
+  on each correct trial, up to holding_response_time_max (done in the task).
+  It carries over from one session to the next.
 """
 
 ## Modalities and training stages
@@ -61,6 +55,14 @@ ALL_MODALITIES = SINGLE_MODALITIES + (MULTISENSORY,)
 STAGE_DIFFICULTIES = ("easy", "hard")
 # Value of the modality dropdowns in the GUI when that position is not used
 NO_MODALITY = "none"
+# Setting with the trials needed in the hard stage of each single modality to
+# move to the next modality of the sequence (0: skip the hard stage).
+# Multisensory has none: it is always the last stage.
+HARD_TRIALS_TO_PROMOTE_SETTINGS = {
+    "visual": "visual_hard_trials_to_promote",
+    "auditory-cot": "auditory_cot_hard_trials_to_promote",
+    "auditory-local-wn": "auditory_local_wn_hard_trials_to_promote",
+}
 
 
 def get_stage_name(modality: str, difficulty: str) -> str:
@@ -199,8 +201,8 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.holding_response_time = self.settings.holding_response_time_min
         # time the mouse has to respond (in seconds)
         self.settings.timer_for_response = 50
-        # reward amount in ml to start with (in ml)
-        self.settings.reward_amount_ml = 3
+        # reward amount per correct trial (in µl, as the water calibration)
+        self.settings.reward_amount_ul = 3
         # inter trial interval (in seconds)
         # will mouse be punished for incorrect responses? How long?
         self.settings.punishment = False
@@ -213,6 +215,12 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.easy_trials_on = True
         self.settings.medium_trials_on = False
         self.settings.hard_trials_on = False
+        # trials needed in the hard stage of each modality to move to the next
+        # modality of the sequence. 0: the hard stage is skipped (if there is a
+        # next modality). Multisensory hard is always the last stage
+        self.settings.visual_hard_trials_to_promote = 1000
+        self.settings.auditory_cot_hard_trials_to_promote = 1000
+        self.settings.auditory_local_wn_hard_trials_to_promote = 1000
         # turn on or off the anti-bias
         self.settings.anti_bias_on = True
         self.settings.anti_bias_vector_size = 10
@@ -286,22 +294,34 @@ class TrainingProtocol(TrainingProtocolBase):
         # decrease the reward amount for each session with more than 50 trials
         # match np.sum(self.df.session.value_counts() > 50):
             # case 0:
-            #     self.settings.reward_amount_ml = 5
+            #     self.settings.reward_amount_ul = 5
             # case 1:
-            #     self.settings.reward_amount_ml = 4
+            #     self.settings.reward_amount_ul = 4
             # case 2:
-            #     self.settings.reward_amount_ml = 3.5
+            #     self.settings.reward_amount_ul = 3.5
             # case 3:
-            #     self.settings.reward_amount_ml = 3
+            #     self.settings.reward_amount_ul = 3
             # case 4:
-            #     self.settings.reward_amount_ml = 2.5
+            #     self.settings.reward_amount_ul = 2.5
             # case _:
-            #     self.settings.reward_amount_ml = 2
+            #     self.settings.reward_amount_ul = 2
 
         # update the waiting time in the center port during TwoAFC
         if self.settings.next_task == "TwoAFC":
             if "holding_time" in self.df.columns:
-                self.settings.holding_response_time = self.df.iloc[-1]["holding_time"]
+                # use the last saved value; rows of other tasks (e.g. Habituation)
+                # have no holding time, so they are skipped
+                previous_holding_times = pd.to_numeric(
+                    self.df["holding_time"], errors="coerce"
+                ).dropna()
+                if previous_holding_times.empty:
+                    self.settings.holding_response_time = (
+                        self.settings.holding_response_time_min
+                    )
+                else:
+                    self.settings.holding_response_time = float(
+                        previous_holding_times.iloc[-1]
+                    )
 
         # implement checks depending on the training stage
         stage = self.settings.current_training_stage
@@ -341,6 +361,9 @@ class TrainingProtocol(TrainingProtocolBase):
                 "easy_trials_on",
                 "medium_trials_on",
                 "hard_trials_on",
+                "visual_hard_trials_to_promote",
+                "auditory_cot_hard_trials_to_promote",
+                "auditory_local_wn_hard_trials_to_promote",
             ],
             "Habituation": [
                 "initial_large_reward",
@@ -474,9 +497,14 @@ class TrainingProtocol(TrainingProtocolBase):
         n_days_fail = 5
         fail_performance_threshold = 0.60
 
-        df_with_day = self.df.copy()
+        # only the trials of the current stage count: days, performance and
+        # number of trials (other stages, Habituation or other tasks on the
+        # same day are left out)
+        df_with_day = self.df[
+            self.df.current_training_stage == self.settings.current_training_stage
+        ].copy()
         df_with_day["year_month_day"] = df_with_day.date.astype('datetime64[ns]').dt.strftime("%Y-%m-%d")
-        total_days = df_with_day[df_with_day.current_training_stage == self.settings.current_training_stage].year_month_day.nunique()
+        total_days = df_with_day.year_month_day.nunique()
 
         if total_days >= 3:
             self.increase_min_time_and_refractory_period(
@@ -512,21 +540,30 @@ class TrainingProtocol(TrainingProtocolBase):
                     for performance in previous_performances
                 ]
             ) and all([n_trials > promotion_ntrials_threshold for n_trials in previous_n_trials]):
-                # change the trial difficulty
-                self.settings.easy_trials_on = True
-                self.settings.medium_trials_on = True
-                self.settings.hard_trials_on = True
-                # change training stage
                 modality, _ = parse_stage(self.settings.current_training_stage)
-                self.settings.current_training_stage = get_stage_name(
-                    modality=modality, difficulty="hard"
-                )
-                self.promotion_alarm()
+                next_modality = self.get_next_modality(modality)
+                # skip the hard stage if its number of trials is 0
+                # and there is a next modality
+                if (
+                    self.get_hard_trials_to_promote(modality) == 0
+                    and next_modality is not None
+                ):
+                    self.promote_to_modality(next_modality)
+                else:
+                    # change the trial difficulty
+                    self.settings.easy_trials_on = True
+                    self.settings.medium_trials_on = True
+                    self.settings.hard_trials_on = True
+                    # change training stage
+                    self.settings.current_training_stage = get_stage_name(
+                        modality=modality, difficulty="hard"
+                    )
+                    self.promotion_alarm()
                 
         if total_days >= n_days_fail:
             previous_performances = [
                 utils.get_day_performance(df_with_day, day)
-                for day in df_with_day.year_month_day.unique()[-n_days:]
+                for day in df_with_day.year_month_day.unique()[-n_days_fail:]
             ]
             # introduce punishment if conditions are not met
             if all(
@@ -546,43 +583,63 @@ class TrainingProtocol(TrainingProtocolBase):
         TwoAFC hard to the next modality in the training sequence.
         """
         # logic to promote the animal to the next modality in the training sequence:
-        # after 1500 trials in the hard training stage,
-        # with no performance requirements
-        sequence = get_training_sequence(self.settings)
+        # after <modality>_hard_trials_to_promote trials in the hard training stage,
+        # with no performance requirements. Multisensory hard is the last stage
         modality, _ = parse_stage(self.settings.current_training_stage)
-        # the position in the sequence is derived from the stage, not stored
+        if modality == MULTISENSORY:
+            return None
+        next_modality = self.get_next_modality(modality)
+        if next_modality is None:
+            # last modality of the sequence, or not in the sequence
+            return None
+
+        total_trials = self.df[
+            self.df.current_training_stage == self.settings.current_training_stage
+        ].shape[0]
+        if total_trials >= self.get_hard_trials_to_promote(modality):
+            self.promote_to_modality(next_modality)
+
+        return None
+
+    def get_hard_trials_to_promote(self, modality: str) -> int | None:
+        """Trials needed in the hard stage of a modality (None for multisensory)."""
+        setting_name = HARD_TRIALS_TO_PROMOTE_SETTINGS.get(modality)
+        if setting_name is None:
+            return None
+        return getattr(self.settings, setting_name)
+
+    def get_next_modality(self, modality: str) -> str | None:
+        """
+        Next modality of the training sequence, or None if this is the last one.
+        The position in the sequence is derived from the stage, not stored.
+        """
+        sequence = get_training_sequence(self.settings)
         if modality not in sequence:
             log.alarm(
                 subject=self.subject,
                 description=(
                     f"Stage {self.settings.current_training_stage} uses modality "
                     f"{modality}, which is not in the training sequence {sequence}. "
-                    "The animal will not be promoted."
+                    "The animal will not be promoted to another modality."
                 ),
             )
             return None
         sequence_index = sequence.index(modality)
+        if sequence_index == len(sequence) - 1:
+            return None
+        return sequence[sequence_index + 1]
 
-        total_trials = self.df[
-            self.df.current_training_stage == self.settings.current_training_stage
-        ].shape[0]
-        if ("visual" in sequence) and ("auditory-cot" in sequence):
-            progress_num = 1000
-        else:
-            progress_num = 5000
-        if (total_trials >= progress_num) and (sequence_index < len(sequence) - 1):
-            next_modality = sequence[sequence_index + 1]
-            self.settings.current_training_stage = get_stage_name(
-                modality=next_modality, difficulty="easy"
-            )
-            self.settings.easy_trials_on = True
-            self.settings.medium_trials_on = False
-            self.settings.hard_trials_on = False
-            self.settings.punishment = False
-            self.settings.anti_bias_on = True
-            self.promotion_alarm()
-
-        return None
+    def promote_to_modality(self, modality: str) -> None:
+        """Moves the animal to the easy stage of a new modality."""
+        self.settings.current_training_stage = get_stage_name(
+            modality=modality, difficulty="easy"
+        )
+        self.settings.easy_trials_on = True
+        self.settings.medium_trials_on = False
+        self.settings.hard_trials_on = False
+        self.settings.punishment = False
+        self.settings.anti_bias_on = True
+        self.promotion_alarm()
 
     def promotion_alarm(self) -> None:
         """

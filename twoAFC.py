@@ -1,3 +1,12 @@
+# TODO (analysis code): the "visual_stimulus" column changed meaning.
+#   Before (main, new_tv, nuo_dev): (brightness of correct port, brightness of incorrect port)
+#   Now (hmv_claude, from 2026-11-09): (brightness of LEFT port, brightness of RIGHT port)
+#   The old analysis code (e.g. lecilab_behavior_analysis) will read the new rows wrongly.
+#   Update it, telling old and new rows apart by date (or by the training stage names,
+#   which now use hyphens, e.g. "TwoAFC_auditory-cot_easy"; note that visual stages
+#   are named the same as before, so the stage alone is not enough for them).
+#   Remove this TODO once the analysis code is updated.
+
 import random
 
 import numpy as np
@@ -27,16 +36,24 @@ class TwoAFC(TaskBase):
     def __init__(self):
         super().__init__()
 
-        self.info = """
+        self.info = r"""
 
         Two Alternative Force Choice Task
         -------------------
 
-        It works with visual and auditory modality, or both.
-        It has an anti-bias. #TODO: make sure it works as expected
+        Modalities (the cue that tells where the reward is):
+        - visual: the brighter side port
+        - auditory-cot: cloud of tones, dominant frequency
+        - auditory-local-wn: white noise from the side of the reward
+        - multisensory: blocks alternating the single modalities
+          of the training sequence
+        Optional distractors (uninformative, only in trials of another modality):
+        random light (random_visual_stimulus) and
+        random cloud of tones in visual trials (random_COT_stimulus).
+        It has an anti-bias.
         Implement opto. #TODO
-        
-        The progression through the stages is defined in the training_settings.py file.
+
+        The progression through the stages is defined in the training_protocol.py file.
 
            (\(\  
           ( -.-)
@@ -49,7 +66,7 @@ class TwoAFC(TaskBase):
 
         """
 
-        # variables are defined in training_settings.py
+        # variables are defined in training_protocol.py
 
     def start(self):
 
@@ -60,10 +77,10 @@ class TwoAFC(TaskBase):
         # Make sure to calibrate the valve/pump before using it, otherwise
         # you will get errors
         self.left_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
-            port=1, volume=self.settings.reward_amount_ml
+            port=1, volume=self.settings.reward_amount_ul
         )
         self.right_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
-            port=3, volume=self.settings.reward_amount_ml
+            port=3, volume=self.settings.reward_amount_ul
         )
 
         # determine if punishment will be used
@@ -80,8 +97,29 @@ class TwoAFC(TaskBase):
             self.early_poke_punish_condition = "ready_to_initiate"
 
         # determine the initial holding time for the center port
-        # Total holding time
-        self.time_to_hold_response = self.settings.holding_response_time
+        # Total holding time, always a number between the min and the max
+        # (a NaN timer would make the Bpod state machine fail)
+        holding_min = self.settings.holding_response_time_min
+        holding_max = self.settings.holding_response_time_max
+        try:
+            holding_time = float(self.settings.holding_response_time)
+        except (TypeError, ValueError):
+            holding_time = np.nan
+        if not np.isfinite(holding_time):
+            print(
+                "Warning: holding_response_time is {0}, using the minimum {1}".format(
+                    self.settings.holding_response_time, holding_min
+                )
+            )
+            holding_time = holding_min
+        elif not holding_min <= holding_time <= holding_max:
+            clipped = min(max(holding_time, holding_min), holding_max)
+            print(
+                "Warning: holding_response_time {0} is outside [{1}, {2}], "
+                "using {3}".format(holding_time, holding_min, holding_max, clipped)
+            )
+            holding_time = clipped
+        self.time_to_hold_response = holding_time
         # Remaining holding time
         self.remaining_holding_time = self.time_to_hold_response - self.settings.holding_response_time_min
         # If it is 0 or negative, set it to something small
@@ -134,13 +172,13 @@ class TwoAFC(TaskBase):
 
         # initialize the variables that will hold the stimuli for the trial
         self.trial_visual_stimulus = None
-        self.trial_visual_brighter_side = None
         self.trial_auditory_stimulus = None
         self.trial_auditory_output_side = None
 
         # initialize the sound properties
         self.get_sound_from_settings()
-        # create a variable in manager to store the sound
+        # variable of the task that stores the sound of the trial
+        # (the softcode functions read it from here)
         self.twoAFC_sound = None
         # find the speakers that this system is using
         speaker_config = speaker_dict[self.system_name]
@@ -171,6 +209,39 @@ class TwoAFC(TaskBase):
                 "location_db_range": self.settings.hard_location_db_range,
                 "frequency_proportion": self.settings.hard_frequency_proportion,
             }
+
+        if len(self.trial_difficulty_parameters) == 0:
+            raise ValueError(
+                "At least one of easy_trials_on, medium_trials_on or "
+                "hard_trials_on must be True"
+            )
+
+        # if lights can be used in this session, the brighter port must not go
+        # above the maximum brightness (1), or the Bpod state machine fails
+        lights_used = (
+            self.session_modality == "visual"
+            or self.settings.random_visual_stimulus
+            or (
+                self.session_modality == MULTISENSORY
+                and "visual" in self.block_modalities
+            )
+        )
+        if lights_used:
+            highest_dimmer_brightness = self.settings.side_port_wrong_intensities_extremes[1]
+            largest_difference = max(
+                parameters["light_intensity_difference"]
+                for parameters in self.trial_difficulty_parameters.values()
+            )
+            if highest_dimmer_brightness * largest_difference > 1:
+                raise ValueError(
+                    "The brighter port could reach a brightness of {0:.3f} (maximum 1): "
+                    "side_port_wrong_intensities_extremes[1] ({1}) x the largest active "
+                    "light_intensity_difference ({2}). Lower one of them.".format(
+                        highest_dimmer_brightness * largest_difference,
+                        highest_dimmer_brightness,
+                        largest_difference,
+                    )
+                )
 
     def create_trial(self):
         """
@@ -294,17 +365,15 @@ class TwoAFC(TaskBase):
     def after_trial(self) -> None:
         # register the training stage
         self.register_value("current_training_stage", self.settings.current_training_stage)
-        # we will also record the trial type, which will be used by training_settings.py
-        # to make sure that the animal does not go from the second stage to the first one
+        # register the reward side of the trial
         self.register_value("correct_side", self.this_trial_side)
         # register the modality of the stimulus
         self.register_value("stimulus_modality", self.stimulus_modality)
         # register the difficulty of the trial
         self.register_value("difficulty", self.this_trial_difficulty)
         # register the actual stimuli used
-        # (brighter, dimmer) brightness of the side ports
+        # (left, right) brightness of the side ports. See the TODO at the top of the file
         self.register_value("visual_stimulus", self.trial_visual_stimulus)
-        self.register_value("visual_brighter_side", self.trial_visual_brighter_side)
         self.register_value("auditory_stimulus", self.trial_auditory_stimulus)
         self.register_value("auditory_output_side", self.trial_auditory_output_side)
         # register the actual auditory statistics
@@ -313,11 +382,10 @@ class TwoAFC(TaskBase):
             if "high_tones" in self.trial_auditory_stimulus:
                 sound_stats = get_sound_stats(self.trial_auditory_stimulus)
                 self.register_value("auditory_real_statistics", sound_stats)
-            # reset the sound in the manager
+            # reset the sound of the trial
             self.twoAFC_sound = None
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
-        self.trial_visual_brighter_side = None
         self.trial_auditory_stimulus = None
         self.trial_auditory_output_side = None
         # if multisensory, register the block number
@@ -326,6 +394,7 @@ class TwoAFC(TaskBase):
                 "stimulus_modality_block_number", self.stim_mod_block_counter
             )
         # we will also record if the trial was correct or not
+        # (True, False, or None on timeouts. Early withdrawals are False)
         was_trial_correct = self.get_performance_of_trial()
         self.register_value("correct", was_trial_correct)
 
@@ -333,15 +402,23 @@ class TwoAFC(TaskBase):
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
         if self.has_state_occurred("STATE_reward_state_START"):
-            self.register_value("water", self.settings.reward_amount_ml)
+            self.register_value("water", self.settings.reward_amount_ul)
         else:
             self.register_value("water", 0)
 
         # print information to screen
+        if was_trial_correct is None:
+            outcome = "a timeout"
+        elif not self.has_state_occurred("STATE_stimulus_state_START"):
+            outcome = "an early withdrawal"
+        elif was_trial_correct:
+            outcome = "correct"
+        else:
+            outcome = "incorrect"
         print("\t{0} {1} trial was {2}".format(
             self.this_trial_side,
             self.this_trial_difficulty,
-            "correct" if was_trial_correct else "incorrect"
+            outcome,
             )
         )
 
@@ -363,7 +440,10 @@ class TwoAFC(TaskBase):
             )
 
         # update the list of the last X trials for the anti-bias
-        if self.settings.anti_bias_on:
+        # (trials without a side choice, timeouts and early withdrawals,
+        # say nothing about the bias, so they are skipped)
+        made_a_choice = self.first_poke_after_stimulus_state() is not None
+        if self.settings.anti_bias_on and made_a_choice:
             # shift each list one position to the right
             for key in self.last_trials_vector.keys():
                 self.last_trials_vector[key] = np.roll(self.last_trials_vector[key], 1)
@@ -377,7 +457,8 @@ class TwoAFC(TaskBase):
         # random side by default
         p = [0.5, 0.5]
         # change it if anti-bias is on
-        # first 15 trials are ignored by the function that calculates the bias
+        # the anti-bias is off (p = 0.5) until anti_bias_vector_size trials
+        # with a side choice have been made in this session
         if self.settings.anti_bias_on:
             # find the bias of the mouse
             right_bias = get_right_bias(self.last_trials_vector)
@@ -490,16 +571,16 @@ class TwoAFC(TaskBase):
             self.brightness_of_correct_port, self.brightness_of_incorrect_port = (
                 random.sample([higher_brightness, lower_brightness], 2)
             )
-        # store as the trial stimuli: (brighter, dimmer) brightness
-        self.trial_visual_stimulus = (higher_brightness, lower_brightness)
-        # and the side of the brighter port (it differs from the correct side
-        # only when the light is a distractor)
-        brighter_is_correct = self.brightness_of_correct_port == higher_brightness
-        if brighter_is_correct:
-            self.trial_visual_brighter_side = self.this_trial_side
+        # store as the trial stimuli: (left, right) brightness
+        if self.this_trial_side == "left":
+            self.trial_visual_stimulus = (
+                self.brightness_of_correct_port,
+                self.brightness_of_incorrect_port,
+            )
         else:
-            self.trial_visual_brighter_side = (
-                "right" if self.this_trial_side == "left" else "left"
+            self.trial_visual_stimulus = (
+                self.brightness_of_incorrect_port,
+                self.brightness_of_correct_port,
             )
         # set the output of the stimulus states
         self.hold_while_stimulus_state_output.extend([
@@ -549,9 +630,12 @@ class TwoAFC(TaskBase):
             low_amplitude_mean=low_amplitude_mean,
         )
         # TODO: solve this in the calibration
-        # temporal solution for the calibration problem
-        # ensure the max and min values are within range
-        # Clip only non-zero values
+        # Temporary solution: clip the loudness of every tone (non-zero values,
+        # zeros are silence) to [bottom_amplitude_mean, top_amplitude_mean],
+        # so that no tone falls outside the calibrated range.
+        # Side effect: when the mean of the trial is close to one of the limits,
+        # many tones are capped at that limit, so the real loudness spread is
+        # smaller than amplitude_std. The saved auditory_stimulus has the clipped values.
         high_mat[high_mat != 0] = np.clip(
             high_mat[high_mat != 0],
             self.settings.bottom_amplitude_mean,
@@ -704,14 +788,24 @@ class TwoAFC(TaskBase):
             "ramp_time": self.settings.tone_ramp_time,
         }
     
-    def get_performance_of_trial(self) -> bool:
+    def get_performance_of_trial(self) -> bool | None:
         """
         This method calculates the performance of a trial, comparing the trial type
         to the first port that the mouse poked.
+        - True / False: the first side poke was correct / incorrect.
+        - False: early withdrawal from the center port that ended the trial
+          (the stimulus state was never reached).
+        - None: timeout, the mouse did not choose a side.
         You can access the trial information in self.trial_data
         """
+        # early withdrawal: the trial ended before the stimulus state
+        if not self.has_state_occurred("STATE_stimulus_state_START"):
+            return False
         # get the side port that the mouse poked first
         first_poke = self.first_poke_after_stimulus_state()
+        # timeout: no choice
+        if first_poke is None:
+            return None
         # check if the mouse poked the correct port
         if first_poke == "Port1In" and self.this_trial_side == "left":
             return True

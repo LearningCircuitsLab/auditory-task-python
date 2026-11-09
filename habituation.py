@@ -46,10 +46,10 @@ class Habituation(TaskBase):
         # Time the valve needs to open to deliver the reward amount
         # Make sure to calibrate the valve before using it
         self.left_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
-            port=1, volume=self.settings.reward_amount_ml
+            port=1, volume=self.settings.reward_amount_ul
         )
         self.right_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
-            port=3, volume=self.settings.reward_amount_ml
+            port=3, volume=self.settings.reward_amount_ul
         )
 
         # use same light intensity for both side ports as in the middle port
@@ -135,7 +135,7 @@ class Habituation(TaskBase):
         # register the amount of water given to the mouse in this trial
         # do not delete this variable, it is used to calculate the water consumption
         # and trigger alarms. You can override the alarms in the GUI
-        self.register_value("water", self.settings.reward_amount_ml)
+        self.register_value("water", self.settings.reward_amount_ul)
         # register the training stage
         self.register_value("current_training_stage", self.settings.current_training_stage)
         self.register_value("correct", True)
