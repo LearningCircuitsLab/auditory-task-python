@@ -294,11 +294,12 @@ after **every session**: +1 min to the minimum and maximum session duration and
 
 ## 10. Known open items
 
-- The analysis code in `lecilab_behavior_analysis` still reads
-  `visual_stimulus` as (correct, incorrect) and uses the old modality names. See
-  the TODO at the top of `twoAFC.py`.
-- The plots in `online_plot.py`, `session_plot.py` and `subject_plot.py` come
-  from `lecilab_behavior_analysis`; they still have to be checked with
-  `correct` = None (timeouts) and the new modality names.
+- The data format changed on 2026-11-09 (`visual_stimulus` as (left, right),
+  hyphenated modality names, `correct` = None for timeouts). The analysis
+  package `lecilab_behavior_analysis` reads both versions from its branch
+  `hmv_claude` (see its `data_format_changes.py`), which still has to be merged
+  and installed on the rigs. Until then, the plots in `online_plot.py`,
+  `session_plot.py` and `subject_plot.py` use the old analysis code. See the TODO
+  at the top of `twoAFC.py`.
 - The white noise uses the 1 kHz calibration (`one_thousand_hz_calibration`);
   this is intentional for now.

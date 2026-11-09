@@ -1,11 +1,12 @@
 # TODO (analysis code): the "visual_stimulus" column changed meaning.
 #   Before (main, new_tv, nuo_dev): (brightness of correct port, brightness of incorrect port)
 #   Now (hmv_claude, from 2026-11-09): (brightness of LEFT port, brightness of RIGHT port)
-#   The old analysis code (e.g. lecilab_behavior_analysis) will read the new rows wrongly.
-#   Update it, telling old and new rows apart by date (or by the training stage names,
-#   which now use hyphens, e.g. "TwoAFC_auditory-cot_easy"; note that visual stages
-#   are named the same as before, so the stage alone is not enough for them).
-#   Remove this TODO once the analysis code is updated.
+#   Modality names also changed ("auditory" -> "auditory-cot", ...), and "correct"
+#   can be None (timeouts).
+#   lecilab_behavior_analysis reads both versions from its branch hmv_claude:
+#   see lecilab_behavior_analysis/data_format_changes.py, which documents each
+#   change and the date it applies from.
+#   Remove this TODO once that branch is merged and installed on the rigs.
 
 import random
 
