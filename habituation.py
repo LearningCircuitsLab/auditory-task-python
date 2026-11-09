@@ -27,7 +27,7 @@ class Habituation(TaskBase):
         - To keep mice engaged, ports give water if mouse has not poked after some time.
         """
 
-        # variables are defined in training_settings.py
+        # variables are defined in training_protocol.py
 
     def start(self):
 

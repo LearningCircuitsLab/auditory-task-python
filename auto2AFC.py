@@ -4,6 +4,10 @@ from village.custom_classes.auto_no_mouse_base import (AutoNoMouseBase,
                                                        AutonomouseParam)
 from village.scripts.time_utils import time_utils
 
+# only a function is imported (not the TrainingProtocol class),
+# so that village does not find the training protocol in this module too
+from training_protocol import parse_stage
+
 
 class AutoTwo2AFC(AutoNoMouseBase):
     TASK_NAME = "TwoAFC"  # Task it is designed for
@@ -55,14 +59,30 @@ class AutoTwo2AFC(AutoNoMouseBase):
         else:
             choice_port = "Port3In" if trial_type == "left" else "Port1In"
         
-        # define where the sound comes from
-        if random.random() < task.settings.unilateral_sound_probability:
-            if task.settings.unilateral_sound_side in ["left", "right"]:
-                aud_out_side = task.settings.unilateral_sound_side
+        # modality of the trial: the one the task is using, or the one of the stage
+        stage = task.settings.current_training_stage
+        modality = getattr(task, "stimulus_modality", None)
+        if modality is None:
+            try:
+                modality, _ = parse_stage(stage)
+            except ValueError:
+                modality = task.settings.manual_training_modality
+
+        # define where the sound comes from, as in TwoAFC
+        if modality == "auditory-cot":
+            # cloud of tones: both speakers, or one with unilateral_sound_probability
+            if random.random() < task.settings.unilateral_sound_probability:
+                if task.settings.unilateral_sound_side in ["left", "right"]:
+                    aud_out_side = task.settings.unilateral_sound_side
+                else:
+                    aud_out_side = random.choice(["left", "right"])
             else:
-                aud_out_side = random.choice(["left", "right"])
+                aud_out_side = "both"
+        elif modality == "auditory-local-wn":
+            # white noise from the side of the reward
+            aud_out_side = trial_type
         else:
-            aud_out_side = "both"
+            aud_out_side = None
 
         # Set timing of trial, e.g. how long the mouse takes to poke after
         # stimulus, how long the outcome lasts, etc. We also need to call
@@ -101,16 +121,20 @@ class AutoTwo2AFC(AutoNoMouseBase):
             "STATE_reward_state_END": ([t_choice + 1] if correct else []),
             "STATE_punish_state_START": [] if correct else [t_choice],
             "STATE_punish_state_END": ([] if correct else [t_choice + 1]),
-            "STATE_iti_state_START": [t_iti],
-            "STATE_iti_state_END":   [t_end],
+            "STATE_iti_START": [t_iti],
+            "STATE_iti_END":   [t_end],
             "difficulty": getattr(task, "this_trial_difficulty", "easy"),
-            
 
             # Outcome and trial type (what's logged in Task.after_trial)
+            "current_training_stage": stage,
+            "stimulus_modality": modality,
             "water":      task.settings.reward_amount_ul if correct else 0,
             "correct_side": trial_type,
             "correct":    correct,
             "auditory_output_side": aud_out_side,
+            "holding_time": getattr(
+                task, "time_to_hold_response", task.settings.holding_response_time
+            ),
         }
 
         # Write in df and update trial number.

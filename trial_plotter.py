@@ -30,8 +30,16 @@ class TrialPlotter:
     #         self.paint_plot()
 
     def update_plot(self, data):
-        # Update data
-        self.results = [ast.literal_eval(x) for x in data.correct.values]
+        # Update data. "correct" can be True, False, their text version (if read
+        # from a .csv file), or empty/None for timeouts, which are not plotted
+        results = []
+        for x in data.correct.values:
+            if isinstance(x, str):
+                x = ast.literal_eval(x)
+            if x is None or pd.isna(x):
+                continue
+            results.append(bool(x))
+        self.results = results
         # Update the plot
         self.paint_plot()
 

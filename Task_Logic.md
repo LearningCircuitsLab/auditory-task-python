@@ -286,8 +286,11 @@ after **every session**: +1 min to the minimum and maximum session duration and
   `HARD_TRIALS_TO_PROMOTE_SETTINGS` in `training_protocol.py` (plus its default
   setting), write an `add_<modality>_stimulus()` builder in `twoAFC.py`, and call
   it from `set_stimulus_state_conditions()`.
-- **Test without a mouse**: see `auto2AFC.py` and `virtual_mouse.py` (these may
-  still need updating to the current setting names).
+- **Test without a mouse**: `auto2AFC.py` is the village "autonomouse" for
+  TwoAFC: it pokes the ports during a real session (`run_trial`), or appends mock
+  trials with the same columns as the task (`inject_trial`).
+  `task_runner.py` runs the task with `virtual_mouse.py` and plots the results
+  with `trial_plotter.py` (timeouts, `correct` = None, are not plotted).
 
 ---
 
@@ -296,8 +299,8 @@ after **every session**: +1 min to the minimum and maximum session duration and
 - The analysis code in `lecilab_behavior_analysis` still reads
   `visual_stimulus` as (correct, incorrect) and uses the old modality names. See
   the TODO at the top of `twoAFC.py`.
+- The plots in `online_plot.py`, `session_plot.py` and `subject_plot.py` come
+  from `lecilab_behavior_analysis`; they still have to be checked with
+  `correct` = None (timeouts) and the new modality names.
 - The white noise uses the 1 kHz calibration (`one_thousand_hz_calibration`);
   this is intentional for now.
-- Files other than `twoAFC.py` and `training_protocol.py` may still use old
-  setting or modality names (for example `task_runner.py` sets
-  `stimulus_modality`).

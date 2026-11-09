@@ -24,10 +24,10 @@ def main():
     training = TrainingProtocol()
     training.default_training_settings()
     tafc_task.settings = training.settings
-    tafc_task.settings.stimulus_modality = "auditory_loca"
-    tafc_task.settings.current_training_stage = "TwoAFC_auditory_loca_easy"
-    tafc_task.settings.trial_types = ["left_easy", "right_easy"]
-    tafc_task.settings.holding_response_time = 0.0
+    # the modality of the session comes from the stage name
+    tafc_task.settings.current_training_stage = "TwoAFC_auditory-local-wn_easy"
+    # shortest holding time, and no increase
+    tafc_task.settings.holding_response_time = tafc_task.settings.holding_response_time_min
     tafc_task.settings.holding_response_time_step = 0.00
     tafc_task.settings.middle_port_light_intensity = 0.1
     # remove iti to go faster
