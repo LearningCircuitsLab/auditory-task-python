@@ -19,8 +19,8 @@ Other files you will meet:
 | `habituation.py` | The first task every mouse runs: any side poke is rewarded. |
 | `softcode_functions.py` | Functions the Bpod calls during a trial (stop, load and play sounds, punishment noise). |
 | `sound_functions.py` | Sound generation (cloud of tones, white noise) and `speaker_dict`, which says which speakers each rig has. |
-| `online_plot.py`, `session_plot.py`, `subject_plot.py`, `trial_plotter.py` | Plots shown in the village GUI. |
-| `auto2AFC.py`, `virtual_mouse.py`, `task_runner.py`, `test.py`, `playground.py` | Helpers for testing without a real mouse. |
+| `online_plot.py`, `session_plot.py`, `subject_plot.py` | Plots shown in the village GUI. |
+| `auto2AFC.py`, `virtual_mouse.py`, `trial_plotter.py`, `test.py`, `playground.py` | Helpers for testing without a real mouse. |
 
 ---
 
@@ -289,8 +289,6 @@ after **every session**: +1 min to the minimum and maximum session duration and
 - **Test without a mouse**: `auto2AFC.py` is the village "autonomouse" for
   TwoAFC: it pokes the ports during a real session (`run_trial`), or appends mock
   trials with the same columns as the task (`inject_trial`).
-  `task_runner.py` runs the task with `virtual_mouse.py` and plots the results
-  with `trial_plotter.py` (timeouts, `correct` = None, are not plotted).
 
 ---
 
