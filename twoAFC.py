@@ -10,7 +10,17 @@ from village.custom_classes.task_base import (
     TaskBase,
 )
 
-from sound_functions import cloud_of_tones_matrices, sound_matrix_to_sound, speaker_dict, ten_thousand_hz, white_noise
+from sound_functions import cloud_of_tones_matrices, sound_matrix_to_sound, speaker_dict, white_noise
+# only functions and constants are imported (not the TrainingProtocol class),
+# so that village does not find the training protocol in this module too
+from training_protocol import (
+    ALL_MODALITIES,
+    MULTISENSORY,
+    SINGLE_MODALITIES,
+    get_block_modalities,
+    get_training_sequence,
+    parse_stage,
+)
 
 
 class TwoAFC(TaskBase):
@@ -78,24 +88,41 @@ class TwoAFC(TaskBase):
         if self.remaining_holding_time <= 0:
             self.remaining_holding_time = 0.001
 
-        # if doing multisensory, set the modality to random and generate a block
-        if self.settings.stimulus_modality == "multisensory":
-            self.stimulus_modality = random.choice([modality 
-                for modality in self.settings.training_sequence 
-                if modality != "multisensory"])
+        # modality of the session: it comes from the stage name, except in
+        # Manual_training, where it comes from the manual_training_modality setting
+        if self.settings.current_training_stage == "Manual_training":
+            self.session_modality = self.settings.manual_training_modality
+        else:
+            self.session_modality, _ = parse_stage(self.settings.current_training_stage)
+        if self.session_modality not in ALL_MODALITIES:
+            raise ValueError(
+                "Stimulus modality {0} not recognized".format(self.session_modality)
+            )
+
+        # if doing multisensory, alternate in blocks the single modalities
+        # of the training sequence, starting with a random one
+        if self.session_modality == MULTISENSORY:
+            self.block_modalities = get_block_modalities(
+                get_training_sequence(self.settings)
+            )
+            if len(self.block_modalities) < 2:
+                raise ValueError(
+                    "Multisensory needs two single modalities in the training sequence"
+                )
+            self.stimulus_modality = random.choice(self.block_modalities)
             self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30(
                 self.settings.stimulus_modality_block_size
             )
             self.stim_mod_block_counter = 1
-        # if doing auditory or multisensory, set the contingency
-        if self.settings.stimulus_modality in ["auditory_cot", "multisensory"]:
-            match self.settings.frequency_associated_with_left_choice:
-                case "low":
-                    self.auditory_contingency = {"left": "low", "right": "high"}
-                case "high":
-                    self.auditory_contingency = {"left": "high", "right": "low"}
-                case _:
-                    raise ValueError("Frequency associated with left choice not recognized")
+        # set the contingency of the cloud of tones (used when it is the cue).
+        # Always checked, so that a wrong setting fails at the start of the session
+        match self.settings.frequency_associated_with_left_choice:
+            case "low":
+                self.auditory_contingency = {"left": "low", "right": "high"}
+            case "high":
+                self.auditory_contingency = {"left": "high", "right": "low"}
+            case _:
+                raise ValueError("Frequency associated with left choice not recognized")
 
         # if anti-bias is on, set the information of the last X trials
         if self.settings.anti_bias_on:
@@ -107,6 +134,7 @@ class TwoAFC(TaskBase):
 
         # initialize the variables that will hold the stimuli for the trial
         self.trial_visual_stimulus = None
+        self.trial_visual_brighter_side = None
         self.trial_auditory_stimulus = None
         self.trial_auditory_output_side = None
 
@@ -264,8 +292,6 @@ class TwoAFC(TaskBase):
         )
 
     def after_trial(self) -> None:
-        # register the training sequence
-        self.register_value("training_sequence","__".join(self.settings.training_sequence))
         # register the training stage
         self.register_value("current_training_stage", self.settings.current_training_stage)
         # we will also record the trial type, which will be used by training_settings.py
@@ -276,22 +302,26 @@ class TwoAFC(TaskBase):
         # register the difficulty of the trial
         self.register_value("difficulty", self.this_trial_difficulty)
         # register the actual stimuli used
+        # (brighter, dimmer) brightness of the side ports
         self.register_value("visual_stimulus", self.trial_visual_stimulus)
+        self.register_value("visual_brighter_side", self.trial_visual_brighter_side)
         self.register_value("auditory_stimulus", self.trial_auditory_stimulus)
         self.register_value("auditory_output_side", self.trial_auditory_output_side)
         # register the actual auditory statistics
         if self.trial_auditory_stimulus is not None:
-            if self.stimulus_modality == "auditory_cot":
+            # only the cloud of tones (cue or distractor) has tone statistics
+            if "high_tones" in self.trial_auditory_stimulus:
                 sound_stats = get_sound_stats(self.trial_auditory_stimulus)
                 self.register_value("auditory_real_statistics", sound_stats)
             # reset the sound in the manager
             self.twoAFC_sound = None
         # reset them to None for the next trial
         self.trial_visual_stimulus = None
+        self.trial_visual_brighter_side = None
         self.trial_auditory_stimulus = None
         self.trial_auditory_output_side = None
         # if multisensory, register the block number
-        if self.settings.stimulus_modality == "multisensory":
+        if self.session_modality == MULTISENSORY:
             self.register_value(
                 "stimulus_modality_block_number", self.stim_mod_block_counter
             )
@@ -361,47 +391,67 @@ class TwoAFC(TaskBase):
         self.this_trial_difficulty = random.choice(list(self.trial_difficulty_parameters.keys()))
 
     def set_stimulus_modality(self) -> None:
-        match self.settings.stimulus_modality:
-            case "visual":
-                self.stimulus_modality = "visual"
+        """
+        Sets self.stimulus_modality, the single modality of this trial (the cue).
+        In multisensory it alternates in blocks the single modalities
+        of the training sequence.
+        """
+        if self.session_modality in SINGLE_MODALITIES:
+            self.stimulus_modality = self.session_modality
+            return
 
-            case "auditory_cot":
-                self.stimulus_modality = "auditory_cot"
-
-            case "auditory_local_wn":
-                self.stimulus_modality = "auditory_local_wn"
-
-            case "multisensory":
-                self.current_stim_mod_block_trials_left -= 1
-
-                if self.current_stim_mod_block_trials_left == 0:
-                    block_modalities = [
-                        modality
-                        for modality in self.settings.training_sequence
-                        if modality != "multisensory"
-                    ]
-
-                    current_index = block_modalities.index(
-                        self.stimulus_modality
-                    )
-
-                    next_index = (current_index + 1) % len(block_modalities)
-
-                    self.stimulus_modality = block_modalities[next_index]
-
-                    self.current_stim_mod_block_trials_left = (
-                        get_block_size_uniform_pm30(
-                            self.settings.stimulus_modality_block_size
-                        )
-                    )
-
-                    self.stim_mod_block_counter += 1
-
-            case _:
-                raise ValueError("Stimulus modality not recognized")
+        # multisensory
+        self.current_stim_mod_block_trials_left -= 1
+        if self.current_stim_mod_block_trials_left == 0:
+            # change to the next modality of the sequence
+            current_index = self.block_modalities.index(self.stimulus_modality)
+            next_index = (current_index + 1) % len(self.block_modalities)
+            self.stimulus_modality = self.block_modalities[next_index]
+            # generate a new block
+            self.current_stim_mod_block_trials_left = get_block_size_uniform_pm30(
+                self.settings.stimulus_modality_block_size
+            )
+            self.stim_mod_block_counter += 1
+            print(
+                "Entering block {0} ({1}), with {2} trials".format(
+                    self.stim_mod_block_counter,
+                    self.stimulus_modality,
+                    self.current_stim_mod_block_trials_left,
+                )
+            )
 
     def set_stimulus_state_conditions(self) -> None:
-        # set the output for the stimulus state depending on the side
+        """
+        Sets the ports and the stimuli of the trial.
+        - The cue is the stimulus of the trial modality (self.stimulus_modality),
+          always contingent on the reward side.
+        - Distractors (random_visual_stimulus, random_COT_stimulus) add an
+          uninformative stimulus of their type, only in trials whose cue is
+          a different type. They never randomize the cue.
+        """
+        self.set_port_conditions()
+
+        cue = self.stimulus_modality
+
+        # visual: cue, or distractor in non-visual trials
+        if cue == "visual":
+            self.add_visual_stimulus(informative=True)
+        elif self.settings.random_visual_stimulus:
+            self.add_visual_stimulus(informative=False)
+
+        # cloud of tones: cue, or distractor in visual trials only
+        # (not in white noise trials, so that the two sounds are never mixed)
+        if cue == "auditory-cot":
+            self.add_cot_stimulus(informative=True)
+        elif cue == "visual" and self.settings.random_COT_stimulus:
+            self.add_cot_stimulus(informative=False)
+
+        # white noise from the side of the reward
+        if cue == "auditory-local-wn":
+            self.add_local_wn_stimulus()
+
+    def set_port_conditions(self) -> None:
+        # set the ports, actions and valves depending on the side
         if self.this_trial_side == "left":
             self.correct_port_ID = Output.PWM1
             self.incorrect_port_ID = Output.PWM3
@@ -418,181 +468,192 @@ class TwoAFC(TaskBase):
             self.valve_to_open = Output.Valve3
             self.valve_opening_time = self.right_valve_opening_time
 
-        # define conditions based on the trial type
-        if self.stimulus_modality == "visual" or self.settings.random_visual_stimulus:
-            # choose the incorrect brightness at random
-            l_b, h_b = self.settings.side_port_wrong_intensities_extremes
-            lower_brightness = random.uniform(l_b, h_b)
-            # pick the correct brightness difference according to the difficulty
-            higher_brightness = lower_brightness * (
-                self.trial_difficulty_parameters[
-                    self.this_trial_difficulty
-                ]["light_intensity_difference"]
-            )
-            # decide on the contingency of the stimulus and reward
-            if self.settings.random_visual_stimulus:
-                self.brightness_of_correct_port = random.choice(
-                    [higher_brightness, lower_brightness]
-                )
-                self.brightness_of_incorrect_port = (
-                    lower_brightness
-                    if self.brightness_of_correct_port == higher_brightness
-                    else higher_brightness
-                )
-            else:  # make it contingent on the reward side
-                self.brightness_of_correct_port = higher_brightness
-                self.brightness_of_incorrect_port = lower_brightness
-            # store as the trial stimuli
-            self.trial_visual_stimulus = (
-                self.brightness_of_correct_port,
-                self.brightness_of_incorrect_port,
-            )
-            # set the output of the stimulus states
-            self.hold_while_stimulus_state_output.extend([
-                (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
-                (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255))
-            ])
-            self.stimulus_state_output.extend([
-                (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
-                (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255)),
-            ])
-
-        if self.stimulus_modality == "auditory_local_wn":
-            # choose the incorrect brightness at random
-            location_db_min, location_db_max = self.trial_difficulty_parameters[
+    def add_visual_stimulus(self, informative: bool) -> None:
+        """
+        Lights up both side ports with different brightness.
+        If informative, the brightest port is the correct one.
+        If not, the brightest port is chosen at random.
+        """
+        # choose the dimmer brightness at random
+        l_b, h_b = self.settings.side_port_wrong_intensities_extremes
+        lower_brightness = random.uniform(l_b, h_b)
+        # pick the brightness difference according to the difficulty
+        higher_brightness = lower_brightness * (
+            self.trial_difficulty_parameters[
                 self.this_trial_difficulty
-            ]["location_db_range"]
-
-            sound_db = random.uniform(location_db_min, location_db_max)
-
-            left_gain = self.calibrations.sound_calibration.get_sound_gain(
-                self.speakers["left"],
-                sound_db,
-                "one_thousand_hz_calibration",
+            ]["light_intensity_difference"]
+        )
+        if informative:
+            self.brightness_of_correct_port = higher_brightness
+            self.brightness_of_incorrect_port = lower_brightness
+        else:
+            self.brightness_of_correct_port, self.brightness_of_incorrect_port = (
+                random.sample([higher_brightness, lower_brightness], 2)
             )
-            right_gain = self.calibrations.sound_calibration.get_sound_gain(
-                self.speakers["right"],
-                sound_db,
-                "one_thousand_hz_calibration",
+        # store as the trial stimuli: (brighter, dimmer) brightness
+        self.trial_visual_stimulus = (higher_brightness, lower_brightness)
+        # and the side of the brighter port (it differs from the correct side
+        # only when the light is a distractor)
+        brighter_is_correct = self.brightness_of_correct_port == higher_brightness
+        if brighter_is_correct:
+            self.trial_visual_brighter_side = self.this_trial_side
+        else:
+            self.trial_visual_brighter_side = (
+                "right" if self.this_trial_side == "left" else "left"
             )
-            # left_sound = ten_thousand_hz(
-            #     self.settings.sound_duration,
-            #     left_gain,
-            # )
-            # right_sound = ten_thousand_hz(
-            #     self.settings.sound_duration,
-            #     right_gain,
-            # )
-            left_sound = white_noise(
-                self.settings.sound_duration,
-                left_gain,
+        # set the output of the stimulus states
+        self.hold_while_stimulus_state_output.extend([
+            (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
+            (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255))
+        ])
+        self.stimulus_state_output.extend([
+            (self.correct_port_ID, int(self.brightness_of_correct_port * 255)),
+            (self.incorrect_port_ID, int(self.brightness_of_incorrect_port * 255)),
+        ])
+
+    def add_cot_stimulus(self, informative: bool) -> None:
+        """
+        Plays a cloud of tones. If informative, the dominant frequency follows
+        the contingency of the reward side. If not, it is chosen at random.
+        """
+        # dominant frequency "low" or "high"
+        if informative:
+            dominant_freq = self.auditory_contingency[self.this_trial_side]
+        else:
+            dominant_freq = random.choice(["low", "high"])
+        # get the proportion of tones for the dominant frequency
+        dominant_proportion = self.trial_difficulty_parameters[
+            self.this_trial_difficulty
+        ]["frequency_proportion"] * 0.01
+        # determine the proportion of high and low frequencies
+        match dominant_freq:
+            case "low":
+                low_perc = dominant_proportion
+                high_perc = 1 - dominant_proportion
+            case "high":
+                low_perc = 1 - dominant_proportion
+                high_perc = dominant_proportion
+        # randomize the amplitude of the high and low frequencies
+        high_amplitude_mean = random.uniform(
+            self.settings.bottom_amplitude_mean,
+            self.settings.top_amplitude_mean,
+        )
+        # same as high to not confuse the mouse
+        low_amplitude_mean = high_amplitude_mean
+        # create the sound structure
+        high_mat, low_mat = cloud_of_tones_matrices(
+            **self.sound_properties_for_cot_mats,
+            high_prob=high_perc,
+            low_prob=low_perc,
+            high_amplitude_mean=high_amplitude_mean,
+            low_amplitude_mean=low_amplitude_mean,
+        )
+        # TODO: solve this in the calibration
+        # temporal solution for the calibration problem
+        # ensure the max and min values are within range
+        # Clip only non-zero values
+        high_mat[high_mat != 0] = np.clip(
+            high_mat[high_mat != 0],
+            self.settings.bottom_amplitude_mean,
+            self.settings.top_amplitude_mean,
             )
-            right_sound = white_noise(
-                self.settings.sound_duration,
-                right_gain,
+        low_mat[low_mat != 0] = np.clip(
+            low_mat[low_mat != 0],
+            self.settings.bottom_amplitude_mean,
+            self.settings.top_amplitude_mean,
             )
+        # store the trial stimuli
+        self.trial_auditory_stimulus = {
+            "high_tones": high_mat.to_dict(),
+            "low_tones": low_mat.to_dict(),
+        }
+        self.trial_auditory_output_side = self.choose_auditory_output_side()
 
+        # calibrate the sound for each speaker independently
+        left_sound = self.generate_calibrated_sound_for_speaker(
+            high_mat,
+            low_mat,
+            self.speakers["left"],
+        )
+        right_sound = self.generate_calibrated_sound_for_speaker(
+            high_mat,
+            low_mat,
+            self.speakers["right"],
+        )
+        # silence one speaker if the sound is unilateral
+        if self.trial_auditory_output_side == "left":
+            right_sound = np.zeros_like(left_sound)
+        elif self.trial_auditory_output_side == "right":
+            left_sound = np.zeros_like(right_sound)
 
-            if self.this_trial_side == "left":
-                right_sound = np.zeros_like(left_sound)
-            else:
-                left_sound = np.zeros_like(right_sound)
+        # TODO: implement the relative to 1000 calibration
 
-            self.trial_auditory_output_side = self.this_trial_side
-            self.trial_auditory_stimulus = {
-                "frequency_hz": "white_noise",
-                "sound_db_spl": sound_db,
-                "db_range_spl": [location_db_min, location_db_max],
-                "duration": self.settings.sound_duration,
-            }
-            self.twoAFC_sound = {
-                "left": left_sound,
-                "right": right_sound,
-            }
-            self.ready_to_initiate_output.append(Output.SoftCode2)
-            self.hold_while_stimulus_state_output.append(Output.SoftCode3)
-                
-        if self.stimulus_modality == "auditory_cot":
-            # dominant frequency "low" or "high"
-            if self.settings.random_COT_stimulus:
-                dominant_freq = random.choice(["low", "high"])
-            else:  # make it contingent on the reward side
-                dominant_freq = self.auditory_contingency[self.this_trial_side]
-            # get the proportion of tones for the dominant frequency
-            dominant_proportion = self.trial_difficulty_parameters[
-                self.this_trial_difficulty
-            ]["frequency_proportion"] * 0.01
-            # determine the proportion of high and low frequencies
-            match dominant_freq:
-                case "low":
-                    low_perc = dominant_proportion
-                    high_perc = 1 - dominant_proportion
-                case "high":
-                    low_perc = 1 - dominant_proportion
-                    high_perc = dominant_proportion
-            # randomize the amplitude of the high and low frequencies
-            high_amplitude_mean = random.uniform(
-                self.settings.bottom_amplitude_mean,
-                self.settings.top_amplitude_mean,
-            )
-            # low_amplitude_mean = random.uniform(
-            #     self.settings.bottom_amplitude_mean,
-            #     self.settings.top_amplitude_mean,
-            # )
-            # same as high to not confuse the mouse
-            low_amplitude_mean = high_amplitude_mean
-            # create the sound structure
-            high_mat, low_mat = cloud_of_tones_matrices(
-                **self.sound_properties_for_cot_mats,
-                high_prob=high_perc,
-                low_prob=low_perc,
-                high_amplitude_mean=high_amplitude_mean,
-                low_amplitude_mean=low_amplitude_mean,
-            )
-            # TODO: solve this in the calibration
-            # temporal solution for the calibration problem
-            # ensure the max and min values are within range
-            # Clip only non-zero values
-            high_mat[high_mat != 0] = np.clip(
-                high_mat[high_mat != 0],
-                self.settings.bottom_amplitude_mean,
-                self.settings.top_amplitude_mean,
-                )
-            low_mat[low_mat != 0] = np.clip(
-                low_mat[low_mat != 0],
-                self.settings.bottom_amplitude_mean,
-                self.settings.top_amplitude_mean,
-                )
-            # store the trial stimuli
-            self.trial_auditory_stimulus = {
-                "high_tones": high_mat.to_dict(),
-                "low_tones": low_mat.to_dict(),
-            }
-            self.trial_auditory_output_side = "both"
+        self.set_trial_sound(left_sound, right_sound)
 
-            # calibrate the sound for each speaker independently
-            left_sound = self.generate_calibrated_sound_for_speaker(
-                high_mat,
-                low_mat,
-                self.speakers["left"],
-            )
-            right_sound = self.generate_calibrated_sound_for_speaker(
-                high_mat,
-                low_mat,
-                self.speakers["right"],
-            )
+    def choose_auditory_output_side(self) -> str:
+        """
+        Speaker(s) that play the cloud of tones: "both", "left" or "right".
+        With probability unilateral_sound_probability it is played from one side:
+        unilateral_sound_side, or a random side if that setting is "both".
+        """
+        if random.random() < self.settings.unilateral_sound_probability:
+            if self.settings.unilateral_sound_side in ["left", "right"]:
+                return self.settings.unilateral_sound_side
+            return random.choice(["left", "right"])
+        return "both"
 
+    def add_local_wn_stimulus(self) -> None:
+        """
+        Plays white noise only from the speaker of the reward side.
+        Its loudness depends on the difficulty.
+        """
+        location_db_min, location_db_max = self.trial_difficulty_parameters[
+            self.this_trial_difficulty
+        ]["location_db_range"]
 
-            # TODO: implement the relative to 1000 calibration
+        sound_db = random.uniform(location_db_min, location_db_max)
 
-            # add the sound to manager so it is accessible by the softcode functions
-            self.twoAFC_sound = {"left": left_sound, "right": right_sound}
-            # load the sound to the Bpod in the ready_to_initiate state
-            self.ready_to_initiate_output.append(Output.SoftCode2)
-            # play the sound on the hold while stimulus state
-            self.hold_while_stimulus_state_output.append(Output.SoftCode3)
-            # the sound plays if not stopped TODO: test this explicitely
+        left_gain = self.calibrations.sound_calibration.get_sound_gain(
+            self.speakers["left"],
+            sound_db,
+            "one_thousand_hz_calibration",
+        )
+        right_gain = self.calibrations.sound_calibration.get_sound_gain(
+            self.speakers["right"],
+            sound_db,
+            "one_thousand_hz_calibration",
+        )
+        left_sound = white_noise(
+            self.settings.loc_sound_duration,
+            left_gain,
+        )
+        right_sound = white_noise(
+            self.settings.loc_sound_duration,
+            right_gain,
+        )
 
+        if self.this_trial_side == "left":
+            right_sound = np.zeros_like(left_sound)
+        else:
+            left_sound = np.zeros_like(right_sound)
+
+        self.trial_auditory_output_side = self.this_trial_side
+        self.trial_auditory_stimulus = {
+            "frequency_hz": "white_noise",
+            "sound_db_spl": sound_db,
+            "db_range_spl": [location_db_min, location_db_max],
+            "duration": self.settings.loc_sound_duration,
+        }
+        self.set_trial_sound(left_sound, right_sound)
+
+    def set_trial_sound(self, left_sound: np.ndarray, right_sound: np.ndarray) -> None:
+        # store the sound so it is accessible by the softcode functions
+        self.twoAFC_sound = {"left": left_sound, "right": right_sound}
+        # load the sound to the Bpod in the ready_to_initiate state
+        self.ready_to_initiate_output.append(Output.SoftCode2)
+        # play the sound on the hold while stimulus state
+        self.hold_while_stimulus_state_output.append(Output.SoftCode3)
+        # the sound plays if not stopped TODO: test this explicitely
 
     def generate_calibrated_sound_for_speaker(
         self,
@@ -629,7 +690,7 @@ class TwoAFC(TaskBase):
         low_freq_list = list_of_frequencies[: int(self.settings.number_of_frequencies)]
         high_freq_list = list_of_frequencies[-int(self.settings.number_of_frequencies) :]
         self.sound_properties_for_cot_mats = {
-            "duration": self.settings.sound_duration,
+            "duration": self.settings.cot_sound_duration,
             "high_freq_list": high_freq_list,
             "low_freq_list": low_freq_list,
             "amplitude_std": self.settings.amplitude_std,

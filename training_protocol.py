@@ -48,6 +48,87 @@ Progression rules:
   visual and auditory case.
 """
 
+## Modalities and training stages
+# Single source of truth for the modalities, shared with twoAFC.py.
+# Modality names use hyphens (never underscores), because underscores separate
+# the parts of a stage name: TwoAFC_<modality>_<difficulty>
+# Modalities in which one single stimulus type tells the mouse where the reward is
+SINGLE_MODALITIES = ("visual", "auditory-cot", "auditory-local-wn")
+# Modality that alternates, in blocks, the single modalities of the training sequence
+MULTISENSORY = "multisensory"
+ALL_MODALITIES = SINGLE_MODALITIES + (MULTISENSORY,)
+# Difficulties that are part of a stage name
+STAGE_DIFFICULTIES = ("easy", "hard")
+# Value of the modality dropdowns in the GUI when that position is not used
+NO_MODALITY = "none"
+
+
+def get_stage_name(modality: str, difficulty: str) -> str:
+    return f"TwoAFC_{modality}_{difficulty}"
+
+
+def parse_stage(stage: str) -> tuple[str, str]:
+    """
+    Returns (modality, difficulty) of a TwoAFC stage name,
+    e.g. "TwoAFC_auditory-cot_easy" -> ("auditory-cot", "easy").
+    Raises ValueError if the stage is not a TwoAFC stage.
+    """
+    parts = stage.split("_")
+    if (
+        len(parts) != 3
+        or parts[0] != "TwoAFC"
+        or parts[1] not in ALL_MODALITIES
+        or parts[2] not in STAGE_DIFFICULTIES
+    ):
+        raise ValueError(f"{stage} is not a valid TwoAFC training stage")
+    return parts[1], parts[2]
+
+
+def get_training_sequence(settings) -> list[str]:
+    """
+    Builds the training sequence from the modality dropdowns of the GUI
+    (first, second and third_stimulus_modality). Second and third are optional
+    (value "none"). Raises ValueError if the combination is not valid.
+    """
+    first = settings.first_stimulus_modality
+    second = settings.second_stimulus_modality
+    third = settings.third_stimulus_modality
+
+    if first not in SINGLE_MODALITIES:
+        raise ValueError(
+            f"first_stimulus_modality must be one of {SINGLE_MODALITIES}, got {first}"
+        )
+    sequence = [first]
+
+    if second != NO_MODALITY:
+        if second not in SINGLE_MODALITIES:
+            raise ValueError(
+                f"second_stimulus_modality must be one of {SINGLE_MODALITIES} "
+                f"or '{NO_MODALITY}', got {second}"
+            )
+        if second == first:
+            raise ValueError("first and second stimulus modalities must be different")
+        sequence.append(second)
+
+    if third != NO_MODALITY:
+        if third != MULTISENSORY:
+            raise ValueError(
+                f"third_stimulus_modality must be '{MULTISENSORY}' "
+                f"or '{NO_MODALITY}', got {third}"
+            )
+        if len(sequence) < 2:
+            raise ValueError(
+                "multisensory needs two different single modalities before it"
+            )
+        sequence.append(third)
+
+    return sequence
+
+
+def get_block_modalities(sequence: list[str]) -> list[str]:
+    """Single modalities that alternate in blocks in the multisensory stage."""
+    return [modality for modality in sequence if modality != MULTISENSORY]
+
 
 class TrainingProtocol(TrainingProtocolBase):
     """
@@ -93,19 +174,18 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.minimum_duration = 10*60 # 10 minutes
         self.settings.maximum_duration = 30*60 # 30 minutes
 
-        # Training protocol assigned to this animal:
-        # "pure_tone_cot": auditory_local_wn -> auditory_freq
-        # "visual_cot": visual -> auditory
-        self.settings.training_sequence = ["visual", "auditory_cot", "multisensory"]
-        self.settings.first_stimulus_modality = self.settings.training_sequence[0]
-        self.settings.second_stimulus_modality = self.settings.training_sequence[1]
-        self.settings.third_stimulus_modality = self.settings.training_sequence[2]
-        self.settings.training_sequence_index = 0
+        # Training sequence assigned to this animal (see get_training_sequence).
+        # Second and third are optional ("none").
+        self.settings.first_stimulus_modality = "visual"
+        self.settings.second_stimulus_modality = "auditory-cot"
+        self.settings.third_stimulus_modality = MULTISENSORY
 
         # Settings in this block are dependent on each task,
         # and the user needs to create and define them here
-        # stimulus modality
-        self.settings.stimulus_modality = "visual"
+        # The modality of a session comes from current_training_stage
+        # (TwoAFC_<modality>_<difficulty>). This setting is ONLY used when
+        # current_training_stage is "Manual_training"
+        self.settings.manual_training_modality = "visual"
         self.settings.stimulus_modality_block_size = 70
         # strength of the light in the middle port (0-1)
         self.settings.middle_port_light_intensity = 0.05
@@ -156,13 +236,21 @@ class TrainingProtocol(TrainingProtocolBase):
         # * 0.33 can vary depending on the multiplier factor (eg. if 3 for easy),
         # as this multiplier will be the maximum intensity of the correct side port (max 1)
         self.settings.side_port_wrong_intensities_extremes = [0.01, 0.1666]
+        # distractors: present an uninformative stimulus of this type in trials
+        # whose modality is a different one (never randomizes the cue itself)
+        # random light in non-visual trials
+        self.settings.random_visual_stimulus = False
+        # random cloud of tones in visual trials (never in white noise trials)
         self.settings.random_COT_stimulus = False
         # contingency
         self.settings.frequency_associated_with_left_choice = "high"
         # parameters for the auditory stimuli
         # TODO: make an example for how to access this value
         self.settings.sample_rate = settings.get("SAMPLERATE")
-        self.settings.sound_duration = 0.1
+        # duration of the white noise of the sound location modality
+        self.settings.loc_sound_duration = 0.1
+        # duration of the cloud of tones
+        self.settings.cot_sound_duration = 0.5
         self.settings.lowest_frequency = 5000
         self.settings.highest_frequency = 40000
         self.settings.number_of_frequencies = 6
@@ -173,36 +261,10 @@ class TrainingProtocol(TrainingProtocolBase):
         self.settings.bottom_amplitude_mean = 60
         self.settings.amplitude_std = 2
         self.settings.ambiguous_beginning_time = 0.05
+        # probability that the cloud of tones is played from one speaker only,
+        # and from which one ("both" means a random side each time)
         self.settings.unilateral_sound_probability = 0
         self.settings.unilateral_sound_side = "both"
-        self.settings.random_visual_stimulus = False
-
-
-    def get_protocol_from_sequence(self) -> None:
-        sequence = self.settings.training_sequence
-
-        if not isinstance(sequence, list):
-            raise TypeError("training_sequence must be a list")
-
-        if len(sequence) == 0:
-            raise ValueError("training_sequence cannot be empty")
-
-        allowed_modalities = {
-            "visual",
-            "auditory_local_wn",
-            "auditory_cot",
-            "auditory_local_cot",
-            "multisensory",
-        }
-
-        unknown_modalities = set(sequence) - allowed_modalities
-
-        if unknown_modalities:
-            raise ValueError(
-                "Unknown modalities in training_sequence: "
-                f"{sorted(unknown_modalities)}"
-            )
-
 
     def update_training_settings(self) -> None:
         """
@@ -215,7 +277,8 @@ class TrainingProtocol(TrainingProtocolBase):
         # self.settings contains the settings from the last session
 
         # General progressions and adjustments of parameters
-        self.get_protocol_from_sequence()
+        # validate the training sequence chosen in the GUI (raises if not valid)
+        get_training_sequence(self.settings)
         # if the animal is running on manual mode and the training stage is manual, keep the same settings
         if self.df.run_mode.iloc[-1] == "Manual" and self.settings.current_training_stage == "Manual_training":
             return None
@@ -245,22 +308,25 @@ class TrainingProtocol(TrainingProtocolBase):
 
         if stage == "Habituation":
             self.check_progression_from_habituation()
+            return None
 
-        elif stage.endswith("_easy"):
+        if stage == "Manual_training":
+            return None
+
+        try:
+            _, difficulty = parse_stage(stage)
+        except ValueError:
+            log.error(f"Training stage {stage} not recognized.")
+            return None
+
+        if difficulty == "easy":
             self.check_progression_from_tafc_easy()
-
-        elif stage.endswith("_hard"):
+        elif difficulty == "hard":
             self.check_progression_from_tafc_hard()
 
-        elif stage == "Manual_training":
-            pass
-        else:
-            log.error(
-                f"Training stage {stage} not recognized."
-            )
-
         return None
-    
+
+
     def define_gui_tabs(self) -> None:
         """
         This method is used to define the tabs that will be shown in the GUI.
@@ -285,16 +351,19 @@ class TrainingProtocol(TrainingProtocolBase):
                 "easy_light_intensity_difference",
                 "medium_light_intensity_difference",
                 "hard_light_intensity_difference",
-                "random_COT_stimulus"
+                "random_visual_stimulus",
             ],
-            "Sound": [
+            # only used when current_training_stage is "Manual_training"
+            "Manual training only": [
+                "manual_training_modality",
+            ],
+            "Sound COT": [
+                "ambiguous_beginning_time",
                 "frequency_associated_with_left_choice",
                 "easy_frequency_proportion",
                 "medium_frequency_proportion",
                 "hard_frequency_proportion",
-                "unilateral_sound_probability",
-                "unilateral_sound_side",
-                "sound_duration",
+                "cot_sound_duration",
                 "lowest_frequency",
                 "highest_frequency",
                 "number_of_frequencies",
@@ -304,11 +373,15 @@ class TrainingProtocol(TrainingProtocolBase):
                 "top_amplitude_mean",
                 "bottom_amplitude_mean",
                 "amplitude_std",
-                "ambiguous_beginning_time",
-                "random_visual_stimulus",
+                "unilateral_sound_probability",
+                "unilateral_sound_side",
+                "random_COT_stimulus",
+            ],
+            "Sound loc": [
+                "loc_sound_duration",
                 "easy_location_db_range",
                 "medium_location_db_range",
-                "hard_location_db_range"
+                "hard_location_db_range",
             ],
             "Hide": [
                 "trial_sides",
@@ -318,27 +391,19 @@ class TrainingProtocol(TrainingProtocolBase):
         }
 
         self.gui_tabs_restricted = {
-            "first_stimulus_modality": ["visual", "auditory_cot", "auditory_local_wn"],
-            "second_stimulus_modality": ["visual", "auditory_cot", "auditory_local_wn"],
-            "third_stimulus_modality": ["multisensory"],
-            "current_training_stage": [
-                "Habituation",
-
-                "TwoAFC_visual_easy",
-                "TwoAFC_visual_hard",
-                "TwoAFC_auditory_cot_easy",
-                "TwoAFC_auditory_cot_hard",
-                "TwoAFC_auditory_local_wn_easy",
-                "TwoAFC_auditory_local_wn_hard",
-
-                "TwoAFC_multisensory_easy",
-                "TwoAFC_multisensory_hard",
-                "Manual_training",
-            ],
-
-            "stimulus_modality": ["visual", "auditory_cot",
-                                  "auditory_local_wn", "multisensory",
-            ],
+            "first_stimulus_modality": list(SINGLE_MODALITIES),
+            "second_stimulus_modality": list(SINGLE_MODALITIES) + [NO_MODALITY],
+            "third_stimulus_modality": [MULTISENSORY, NO_MODALITY],
+            "current_training_stage": (
+                ["Habituation"]
+                + [
+                    get_stage_name(modality, difficulty)
+                    for modality in ALL_MODALITIES
+                    for difficulty in STAGE_DIFFICULTIES
+                ]
+                + ["Manual_training"]
+            ),
+            "manual_training_modality": list(ALL_MODALITIES),
             "punishment": [True, False],
             "early_poke_punishment": [True, False],
             "anti_bias_on": [True, False],
@@ -351,9 +416,6 @@ class TrainingProtocol(TrainingProtocolBase):
             "random_visual_stimulus": [False, True],
             "unilateral_sound_side": ["both", "left", "right"],
         }
-
-    def get_stage_name(self, modality: str, difficulty: str) -> str:
-        return f"TwoAFC_{modality}_{difficulty}"
 
     def check_progression_from_habituation(self) -> None:
         """
@@ -379,12 +441,10 @@ class TrainingProtocol(TrainingProtocolBase):
         if total_trials >= 150:
             self.settings.next_task = "TwoAFC"
 
-            self.settings.training_sequence_index = 0
-            first_modality = self.settings.training_sequence[0]
+            first_modality = get_training_sequence(self.settings)[0]
 
-            self.settings.stimulus_modality = first_modality
-            self.settings.current_training_stage = (
-                self.get_stage_name(modality=first_modality, difficulty="easy")
+            self.settings.current_training_stage = get_stage_name(
+                modality=first_modality, difficulty="easy"
             )
 
             self.settings.easy_trials_on = True
@@ -457,10 +517,9 @@ class TrainingProtocol(TrainingProtocolBase):
                 self.settings.medium_trials_on = True
                 self.settings.hard_trials_on = True
                 # change training stage
-                self.settings.current_training_stage = (
-                    self.get_stage_name(
-                        modality=self.settings.stimulus_modality, difficulty="hard"
-                    )
+                modality, _ = parse_stage(self.settings.current_training_stage)
+                self.settings.current_training_stage = get_stage_name(
+                    modality=modality, difficulty="hard"
                 )
                 self.promotion_alarm()
                 
@@ -489,19 +548,32 @@ class TrainingProtocol(TrainingProtocolBase):
         # logic to promote the animal to the next modality in the training sequence:
         # after 1500 trials in the hard training stage,
         # with no performance requirements
+        sequence = get_training_sequence(self.settings)
+        modality, _ = parse_stage(self.settings.current_training_stage)
+        # the position in the sequence is derived from the stage, not stored
+        if modality not in sequence:
+            log.alarm(
+                subject=self.subject,
+                description=(
+                    f"Stage {self.settings.current_training_stage} uses modality "
+                    f"{modality}, which is not in the training sequence {sequence}. "
+                    "The animal will not be promoted."
+                ),
+            )
+            return None
+        sequence_index = sequence.index(modality)
+
         total_trials = self.df[
             self.df.current_training_stage == self.settings.current_training_stage
         ].shape[0]
-        if ("visual" in self.settings.training_sequence) and ("auditory_cot" in self.settings.training_sequence):
+        if ("visual" in sequence) and ("auditory-cot" in sequence):
             progress_num = 1000
         else:
             progress_num = 5000
-        if (total_trials >= progress_num) and (self.settings.training_sequence_index < len(self.settings.training_sequence) - 1):
-            self.settings.training_sequence_index += 1
-            next_modality = self.settings.training_sequence[self.settings.training_sequence_index]
-            self.settings.stimulus_modality = next_modality
-            self.settings.current_training_stage = (
-                self.get_stage_name(modality=next_modality, difficulty="easy")
+        if (total_trials >= progress_num) and (sequence_index < len(sequence) - 1):
+            next_modality = sequence[sequence_index + 1]
+            self.settings.current_training_stage = get_stage_name(
+                modality=next_modality, difficulty="easy"
             )
             self.settings.easy_trials_on = True
             self.settings.medium_trials_on = False
