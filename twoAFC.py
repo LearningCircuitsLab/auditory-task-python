@@ -77,10 +77,10 @@ class TwoAFC(TaskBase):
         # Time the valve needs to open to deliver the reward amount
         # Make sure to calibrate the valve/pump before using it, otherwise
         # you will get errors
-        self.left_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
+        self.left_valve_opening_time = self.calibrations.water_calibration.get_valve_time(
             port=1, volume=self.settings.reward_amount_ul
         )
-        self.right_valve_opening_time = self.calibrations.bpod_water_calibration.get_valve_time(
+        self.right_valve_opening_time = self.calibrations.water_calibration.get_valve_time(
             port=3, volume=self.settings.reward_amount_ul
         )
 
