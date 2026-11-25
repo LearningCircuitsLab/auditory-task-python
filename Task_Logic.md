@@ -294,12 +294,21 @@ after **every session**: +1 min to the minimum and maximum session duration and
 
 ## 10. Known open items
 
-- The data format changed on 2026-11-09 (`visual_stimulus` as (left, right),
-  hyphenated modality names, `correct` = None for timeouts). The analysis
-  package `lecilab_behavior_analysis` reads both versions from its branch
-  `hmv_claude` (see its `data_format_changes.py`), which still has to be merged
-  and installed on the rigs. Until then, the plots in `online_plot.py`,
-  `session_plot.py` and `subject_plot.py` use the old analysis code. See the TODO
-  at the top of `twoAFC.py`.
+- This version of the task changed the data format (`visual_stimulus` as
+  (left, right), hyphenated modality names, `correct` = None for timeouts). It
+  is the `main` branch, and each village started running it on a different day:
+  village06 on 2026-11-09, villages 01, 02, 04 and 05 on 2026-11-25. The
+  analysis package `lecilab_behavior_analysis` (its `main`) reads both formats
+  by the date and the village of each trial (`NEW_TASK_CODE_SINCE` in its
+  `data_format_changes.py`): when a village with old data starts running this
+  code, add it there. Every village must also have that version of
+  `lecilab_behavior_analysis` installed (the training protocol and the plots in
+  `online_plot.py`, `session_plot.py` and `subject_plot.py` use it). Once they
+  all do, the TODO at the top of `twoAFC.py` can be removed.
+- `use_sound_location`, an option of the older `main` branch (cloud of tones
+  played from the speaker on the side of the reward, with a random dominant
+  frequency), was dropped: sound location is now the modality
+  `auditory-local-wn`. Its old trials (project COT_unilateral_sound, 2026) are
+  read by `lecilab_behavior_analysis` as the modality `auditory-local-cot`.
 - The white noise uses the 1 kHz calibration (`one_thousand_hz_calibration`);
   this is intentional for now.
